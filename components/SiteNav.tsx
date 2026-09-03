@@ -1,0 +1,32 @@
+import { site } from "@/src/content/site";
+
+type Props = {
+  active?: string;
+  dark?: boolean;
+  hideNotes?: boolean;
+  labels?: readonly string[];
+};
+
+export function SiteNav({ active, dark = false, hideNotes = false, labels }: Props) {
+  let items = hideNotes ? site.nav.filter((item) => item.label !== "notes") : site.nav;
+  if (labels) {
+    items = labels
+      .map((label) => site.nav.find((item) => item.label === label))
+      .filter((item): item is (typeof site.nav)[number] => Boolean(item));
+  }
+
+  return (
+    <>
+      <a className="site-logo" href="/" aria-label="How I See — home">
+        <img src={dark ? "/assets/shared/logo-dark.webp" : "/assets/shared/logo.webp"} alt="how i see" />
+      </a>
+      <nav className={`site-nav ${dark ? "site-nav--dark" : ""}`} aria-label="Primary navigation">
+        {items.map((item) => (
+          <a key={item.label} href={item.href} className={active === item.label ? "is-active" : undefined}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+    </>
+  );
+}
