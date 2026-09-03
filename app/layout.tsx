@@ -5,7 +5,7 @@ import "@fontsource/caveat/400.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://how-i-see.pages.dev"),
+  metadataBase: new URL("https://how-i-see-wang-jinghan.judy40202.chatgpt.site"),
   title: {
     default: "How I See — Wang Jinghan",
     template: "%s — How I See",
