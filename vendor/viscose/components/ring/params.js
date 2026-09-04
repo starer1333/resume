@@ -66,14 +66,6 @@ export function defaultParams() {
     blend: 14, // px over which neighbouring art crossfades in the goo
     imageOffset: 0, // rotates the whole deal; 0 lands the entry on PROJECTS[0]
 
-    // -- loading ---------------------------------------------------------
-    // The counter is the gate: the entry launches on the frame it reads 100.
-    // holdAfter is a beat held after that and wants to stay near zero.
-    holdAfter: 0,
-    loaderChase: 0.18,
-    loaderBottom: 1, // vh
-    loaderOut: 0.45, // seconds to fade once the hold lets go
-
     // -- entry timing ----------------------------------------------------
     stagger: 0.34,
     launchTime: 1.95,

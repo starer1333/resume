@@ -17,8 +17,8 @@ export function SiteNav({ active, dark = false, hideNotes = false, labels }: Pro
 
   return (
     <>
-      <a className="site-logo" href="/" aria-label="How I See — home">
-        <img src={dark ? "/assets/shared/logo-dark.webp" : "/assets/shared/logo.webp"} alt="how i see" />
+      <a className={`site-logo ${dark ? "site-logo--dark" : ""}`} href="/" aria-label="Jinghan — home">
+        jinghan
       </a>
       <nav className={`site-nav ${dark ? "site-nav--dark" : ""}`} aria-label="Primary navigation">
         {items.map((item) => (

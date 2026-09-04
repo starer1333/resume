@@ -106,7 +106,7 @@ export function AboutScene() {
 
   return (
     <ReferenceArtboard className="paper-stage about-stage" stageRef={stageRef}>
-      <SiteNav labels={["works", "essays", "notes", "about", "contact"]} />
+      <SiteNav active="about" />
       <section className="about-intro" aria-labelledby="about-heading">
         <h1 id="about-heading">
           Hi, my name is

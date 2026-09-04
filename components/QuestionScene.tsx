@@ -43,7 +43,6 @@ export function QuestionScene() {
         <TransformComponent wrapperClass="question-viewport" contentClass="question-canvas" wrapperStyle={{ width: "1672px", height: "941px" }} contentStyle={{ width: "2600px", height: "1700px" }}>
           <div className="question-reference-area">
             <SiteNav />
-            <a className="email-doodle" href="mailto:hello@example.com" aria-label="Email Wang Jinghan"><img src="/assets/shared/email.webp" alt="" /></a>
             <header className="question-heading">
               <h1>Question</h1>
               <p>I don&apos;t have the answers yet.<br />But I keep asking better questions.</p>

@@ -88,16 +88,6 @@ export function mountGui(GUI, { params, state, info, actions }) {
   shape.add(params, "imageOffset", 0, 32, 1).name("image offset");
   shape.add(info, "restingGap").listen().disable().name("resting gap");
 
-  // -- loader --------------------------------------------------------------
-  const loader = gui.addFolder("loader");
-  loader.add(params, "loaderChase", 0.02, 1, 0.01).name("count speed");
-  loader.add(params, "holdAfter", 0, 3, 0.05).name("beat after 100 (s)");
-  loader
-    .add(params, "loaderBottom", 0, 20, 0.1)
-    .name("from bottom (vh)")
-    .onChange(styleMeta);
-  loader.add(params, "loaderOut", 0.05, 3, 0.05).name("fade out (s)");
-
   // -- entry ---------------------------------------------------------------
   const timing = gui.addFolder("timing");
   timing.add(params, "stagger", 0, 1, 0.005);

@@ -3,21 +3,12 @@ export const site = {
   pronunciation: "wang jing-han",
   location: "Changchun, China",
   bio: "I observe, question, make, and keep notes on the small things that shape a life.",
-  email: "mailto:hello@example.com",
-  social: {
-    youtube: "#",
-    instagram: "#",
-    tiktok: "#",
-    xiaohongshu: "#",
-    linkedin: "#",
-  },
   nav: [
     { label: "works", href: "/make" },
     { label: "essays", href: "/question" },
     { label: "film", href: "/observe" },
     { label: "about", href: "/about" },
     { label: "notes", href: "/notes" },
-    { label: "contact", href: "mailto:hello@example.com" },
   ],
   cards: [
     { number: "01", title: "Observe", href: "/observe", asset: "card-observe" },
@@ -33,9 +24,7 @@ export const site = {
     interests: "Observe / Question / Make / Notes / Unfinished",
     since: "2023",
   },
-  researchProjects: [
-    "Memory", "Identity", "Attention", "Connection", "Meaning",
-  ],
+  researchProjects: ["Memory", "Identity", "Attention", "Connection", "Meaning"],
   notes: [
     { title: "Heavy Days", date: "April 12, 2023", kind: "Journal entry", asset: "frame-heavy" },
     { title: "Outgrow", date: "March 3, 2022", kind: "Scrap note", asset: "frame-outgrow" },

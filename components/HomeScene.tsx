@@ -1,138 +1,240 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { createWiggle, hasFinePointer, MOTION_CONFIG, prefersReducedMotion } from "@/src/motion/portfolioMotion";
-import { ReferenceArtboard } from "./ReferenceArtboard";
+import { heroCenterMode, heroFragments, heroIdentity } from "@/src/content/hero";
+import { hasFinePointer, MOTION_CONFIG, prefersReducedMotion } from "@/src/motion/portfolioMotion";
 import { SiteNav } from "./SiteNav";
-import { DevReferenceOverlay } from "./DevReferenceOverlay";
 
-const pieces = [
-  ["flowers-top", 340, 86, 146, 206],
-  ["collect-note", 479, 128, 130, 160],
-  ["window-top", 605, 96, 185, 196],
-  ["vase", 792, 93, 160, 188],
-  ["portrait-top", 973, 123, 156, 172],
-  ["coast", 1114, 142, 146, 122],
-  ["fern", 1258, 110, 134, 161],
-  ["coffee", 153, 344, 158, 169],
-  ["photo-booth", 314, 294, 182, 225],
-  ["film", 505, 393, 116, 190],
-  ["today-note", 1004, 315, 164, 239],
-  ["camera-shelf", 1164, 286, 162, 139],
-  ["field-frame", 1314, 259, 176, 149],
-  ["friend-strip", 1344, 399, 118, 197],
-  ["moment-note", 1414, 404, 146, 188],
-  ["little-note", 166, 530, 145, 133],
-  ["market", 321, 530, 177, 138],
-  ["camera", 277, 657, 122, 93],
-  ["botanical-cat", 494, 584, 210, 185],
-  ["ticket", 994, 580, 154, 128],
-  ["window-frame", 1164, 579, 158, 245],
-  ["memory-note", 1306, 638, 164, 193],
-  ["embroidery", 372, 713, 171, 202],
-  ["stamp", 532, 735, 184, 185],
-  ["landscape-wide", 690, 707, 296, 219],
-  ["tram", 973, 746, 176, 170],
-] as const;
+type HeroFragment = (typeof heroFragments)[number];
+
+function fragmentStyle(fragment: HeroFragment) {
+  return {
+    "--hero-left": fragment.desktop.left,
+    "--hero-top": fragment.desktop.top,
+    "--hero-width": fragment.desktop.width,
+    "--hero-ratio": fragment.desktop.ratio,
+    "--hero-rotate": `${fragment.desktop.rotate}deg`,
+    "--hero-depth": `${fragment.desktop.depth}px`,
+    "--hero-mobile-left": fragment.mobile.left,
+    "--hero-mobile-top": fragment.mobile.top,
+    "--hero-mobile-width": fragment.mobile.width,
+    "--hero-mobile-ratio": fragment.mobile.ratio,
+    "--hero-mobile-rotate": `${fragment.mobile.rotate}deg`,
+  } as CSSProperties;
+}
+
+function FragmentContents({ fragment }: { fragment: HeroFragment }) {
+  return (
+    <div className="hero-fragment__surface" data-motion="hero-fragment-surface">
+      <div className="hero-fragment__media">
+        {fragment.asset ? (
+          <img src={fragment.asset} alt={fragment.alt} />
+        ) : (
+          <div className={`hero-fragment__graphic hero-fragment__graphic--${fragment.id}`} aria-hidden="true">
+            <span>{fragment.id === "guitar" ? "six quiet strings" : fragment.id === "piano" ? "88 keys / one room" : "cut  01:24:08"}</span>
+            <i /><i /><i /><i />
+          </div>
+        )}
+      </div>
+      <span className="hero-fragment__number">{fragment.number}</span>
+      <span className="hero-fragment__title">{fragment.title}</span>
+      <span className="hero-fragment__note">{fragment.note}</span>
+    </div>
+  );
+}
+
+function HeroFragmentCard({ fragment }: { fragment: HeroFragment }) {
+  const className = `hero-fragment hero-fragment--${fragment.kind} hero-fragment--${fragment.tone}`;
+  const props = {
+    className,
+    style: fragmentStyle(fragment),
+    "data-motion": "hero-fragment",
+    "data-fragment-id": fragment.id,
+  };
+
+  if (fragment.href) {
+    return (
+      <a {...props} href={fragment.href} aria-label={`${fragment.title}: ${fragment.note}`}>
+        <FragmentContents fragment={fragment} />
+      </a>
+    );
+  }
+
+  return (
+    <article {...props} aria-label={`${fragment.title}: ${fragment.note}`}>
+      <FragmentContents fragment={fragment} />
+    </article>
+  );
+}
 
 export function HomeScene() {
-  const stageRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLElement>(null);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
 
     gsap.registerPlugin(ScrollTrigger);
+    const cards = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="hero-fragment"]'));
+    const surfaces = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="hero-fragment-surface"]'));
+    const center = stage.querySelector<HTMLElement>('[data-motion="hero-center"]');
+    if (!center || cards.length !== heroFragments.length) return;
+
+    if (prefersReducedMotion()) {
+      stage.dataset.heroState = "expanded";
+      cards.forEach((card) => { card.dataset.motionReady = "true"; });
+      return;
+    }
+
     const cleanups: Array<() => void> = [];
     const context = gsap.context(() => {
-      const anchor = stage.querySelector<HTMLElement>('[data-motion="collage-anchor"]');
-      const items = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="collage-item"]'));
-      const sloth = stage.querySelector<HTMLElement>('[data-motion="scroll-sloth"]');
-      if (!anchor || !sloth) return;
+      let unfold: gsap.core.Timeline | null = null;
+      let armed = true;
 
-      if (prefersReducedMotion()) {
-        items.forEach((item) => { item.dataset.motionReady = "true"; });
-        sloth.dataset.motionReady = "true";
-        return;
-      }
+      const finalRotation = (card: HTMLElement) => {
+        const value = getComputedStyle(card).getPropertyValue("--hero-rotate");
+        return Number.parseFloat(value) || 0;
+      };
+
+      const collapse = (state: "collapsed" | "rearmed") => {
+        unfold?.kill();
+        gsap.killTweensOf(cards);
+        gsap.set(cards, { clearProps: "transform,opacity,visibility" });
+        const centerRect = center.getBoundingClientRect();
+        const centerX = centerRect.left + centerRect.width / 2;
+        const centerY = centerRect.top + centerRect.height / 2;
+
+        cards.forEach((card, index) => {
+          const rect = card.getBoundingClientRect();
+          card.dataset.motionReady = "false";
+          const offset = MOTION_CONFIG.heroUnfold.collapsedOffsets[index];
+          gsap.set(card, {
+            x: centerX - (rect.left + rect.width / 2) + offset.x,
+            y: centerY - (rect.top + rect.height / 2) + offset.y,
+            z: MOTION_CONFIG.heroUnfold.collapsedDepth,
+            scale: MOTION_CONFIG.heroUnfold.collapsedScale,
+            rotation: (index - 2.5) * 1.6,
+            rotationX: index % 2 === 0 ? -8 : 7,
+            rotationY: index % 2 === 0 ? 10 : -10,
+            autoAlpha: MOTION_CONFIG.heroUnfold.collapsedOpacity,
+            transformPerspective: MOTION_CONFIG.heroUnfold.perspective,
+            transformOrigin: "50% 50%",
+          });
+        });
+        stage.dataset.heroState = state;
+      };
+
+      const expand = () => {
+        if (!armed) return;
+        armed = false;
+        stage.dataset.heroState = "expanding";
+        cards.forEach((card) => { card.dataset.motionReady = "false"; });
+
+        unfold = gsap.timeline({
+          onComplete: () => {
+            stage.dataset.heroState = "expanded";
+            cards.forEach((card) => { card.dataset.motionReady = "true"; });
+          },
+        });
+        unfold
+          .to(center, {
+            scale: 1.018,
+            duration: MOTION_CONFIG.heroUnfold.centerPulse / 2,
+            repeat: 1,
+            yoyo: true,
+            ease: "sine.inOut",
+          }, 0)
+          .to(cards, {
+            x: 0,
+            y: 0,
+            z: 0,
+            scale: 1,
+            rotation: (_index, target) => finalRotation(target as HTMLElement),
+            rotationX: 0,
+            rotationY: 0,
+            autoAlpha: 1,
+            duration: MOTION_CONFIG.heroUnfold.duration,
+            stagger: { each: MOTION_CONFIG.heroUnfold.stagger, from: "center" },
+            ease: "power3.out",
+            clearProps: "transform,opacity,visibility,transform-origin",
+          }, 0.04);
+      };
+
+      collapse("collapsed");
+
+      const trigger = ScrollTrigger.create({
+        trigger: stage,
+        start: () => `top+=${window.innerWidth <= 720 ? MOTION_CONFIG.heroUnfold.mobileTrigger : MOTION_CONFIG.heroUnfold.trigger} top`,
+        onEnter: (self) => {
+          if (self.direction > 0 && armed) expand();
+        },
+        onLeaveBack: (self) => {
+          if (self.direction < 0) {
+            armed = true;
+            collapse("rearmed");
+          }
+        },
+        invalidateOnRefresh: true,
+      });
+      cleanups.push(() => trigger.kill());
+
+      if (window.scrollY > trigger.start) expand();
 
       if (hasFinePointer()) {
-        items.forEach((item) => {
-          cleanups.push(createWiggle(item, {
-            ...MOTION_CONFIG.collageWiggle,
-            ready: () => item.dataset.motionReady === "true",
-          }));
+        surfaces.forEach((surface, index) => {
+          const card = cards[index];
+          let rect = surface.getBoundingClientRect();
+          const rotateXTo = gsap.quickTo(surface, "rotationX", { duration: 0.26, ease: "power2.out" });
+          const rotateYTo = gsap.quickTo(surface, "rotationY", { duration: 0.26, ease: "power2.out" });
+
+          const enter = () => {
+            if (card.dataset.motionReady !== "true") return;
+            rect = surface.getBoundingClientRect();
+            surface.dataset.hovered = "true";
+            gsap.to(surface, {
+              y: MOTION_CONFIG.heroTilt.lift,
+              z: MOTION_CONFIG.heroTilt.depth,
+              scale: MOTION_CONFIG.heroTilt.scale,
+              duration: MOTION_CONFIG.heroTilt.duration,
+              ease: "power3.out",
+              overwrite: "auto",
+            });
+          };
+          const move = (event: PointerEvent) => {
+            if (card.dataset.motionReady !== "true") return;
+            const x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width) * 2 - 1));
+            const y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height) * 2 - 1));
+            rotateYTo(x * MOTION_CONFIG.heroTilt.rotateY);
+            rotateXTo(-y * MOTION_CONFIG.heroTilt.rotateX);
+          };
+          const leave = () => {
+            delete surface.dataset.hovered;
+            gsap.killTweensOf(surface);
+            gsap.to(surface, {
+              x: 0, y: 0, z: 0, scale: 1, rotationX: 0, rotationY: 0,
+              duration: MOTION_CONFIG.heroTilt.resetDuration,
+              ease: "power2.out",
+              overwrite: true,
+              clearProps: "transform",
+            });
+          };
+
+          surface.addEventListener("pointerenter", enter);
+          surface.addEventListener("pointermove", move);
+          surface.addEventListener("pointerleave", leave);
+          surface.addEventListener("pointercancel", leave);
+          cleanups.push(() => {
+            gsap.killTweensOf(surface);
+            surface.removeEventListener("pointerenter", enter);
+            surface.removeEventListener("pointermove", move);
+            surface.removeEventListener("pointerleave", leave);
+            surface.removeEventListener("pointercancel", leave);
+          });
         });
       }
-
-      const stageRect = stage.getBoundingClientRect();
-      const artboardScale = stageRect.width / stage.offsetWidth;
-      const anchorRect = anchor.getBoundingClientRect();
-      const anchorCenter = {
-        x: anchorRect.left + anchorRect.width / 2,
-        y: anchorRect.top + anchorRect.height / 2,
-      };
-      const offsets = items.map((item) => {
-        const rect = item.getBoundingClientRect();
-        return {
-          x: (anchorCenter.x - (rect.left + rect.width / 2)) / artboardScale,
-          y: (anchorCenter.y - (rect.top + rect.height / 2)) / artboardScale,
-        };
-      });
-
-      gsap.timeline()
-        .fromTo(anchor, {
-          autoAlpha: 0,
-          scale: MOTION_CONFIG.collageEntrance.anchorStartScale,
-        }, {
-          autoAlpha: 1,
-          scale: 1,
-          duration: MOTION_CONFIG.collageEntrance.anchorDuration,
-          ease: "power3.out",
-          clearProps: "transform,opacity,visibility",
-        })
-        .fromTo(items, {
-          autoAlpha: 0.15,
-          x: (index) => offsets[index].x,
-          y: (index) => offsets[index].y,
-          scale: MOTION_CONFIG.collageEntrance.itemStartScale,
-          rotation: (index) => ((index * 11) % 15) - MOTION_CONFIG.collageEntrance.rotationVariance,
-        }, {
-          autoAlpha: 1,
-          x: 0,
-          y: 0,
-          scale: 1,
-          rotation: 0,
-          duration: MOTION_CONFIG.collageEntrance.itemDuration,
-          stagger: MOTION_CONFIG.collageEntrance.stagger,
-          ease: "power3.out",
-          clearProps: "transform,opacity,visibility",
-          onComplete: () => {
-            items.forEach((item) => { item.dataset.motionReady = "true"; });
-          },
-        }, 0.08);
-
-      const shell = stage.closest<HTMLElement>(".artboard-shell") ?? stage;
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: shell,
-          start: MOTION_CONFIG.slothExit.start,
-          end: MOTION_CONFIG.slothExit.end,
-          scrub: MOTION_CONFIG.slothExit.scrub,
-        },
-      })
-        .to(sloth, { duration: MOTION_CONFIG.slothExit.holdProgress })
-        .to(sloth, {
-          xPercent: MOTION_CONFIG.slothExit.xPercent,
-          y: MOTION_CONFIG.slothExit.y,
-          rotation: MOTION_CONFIG.slothExit.rotation,
-          scale: MOTION_CONFIG.slothExit.scale,
-          duration: 1 - MOTION_CONFIG.slothExit.holdProgress,
-          ease: "none",
-        });
-      sloth.dataset.motionReady = "true";
     }, stage);
 
     return () => {
@@ -142,35 +244,29 @@ export function HomeScene() {
   }, []);
 
   return (
-    <ReferenceArtboard className="paper-stage home-stage" motion="collage-root" stageRef={stageRef}>
+    <section ref={stageRef} className="home-hero paper-stage" data-motion="hero" data-hero-state="collapsed">
       <SiteNav />
-      <a className="email-doodle" href="mailto:hello@example.com" aria-label="Email Wang Jinghan">
-        <img src="/assets/shared/email.webp" alt="" />
-      </a>
-      {pieces.map(([name, x, y, width, height]) => (
-        <img
-          key={name}
-          className="collage-piece"
-          data-motion="collage-item"
-          src={`/assets/home/${name}.webp`}
-          alt=""
-          aria-hidden="true"
-          style={{ left: x, top: y, width, height }}
-        />
-      ))}
-      <img
-        className="collage-piece"
-        data-motion="collage-anchor"
-        src="/assets/home/portrait-wreath.webp"
-        alt="Portrait of Wang Jinghan framed with flowers"
-        style={{ left: 676, top: 282, width: 326, height: 308 }}
-      />
-      <div className="home-title">
-        <h1>HOW I SEE</h1>
-        <p>observing. feeling. remembering.</p>
+      <p className="hero-field-note">a personal field note<br />in sound, image &amp; memory</p>
+
+      <div className="hero-center" data-motion="hero-center" data-center-mode={heroCenterMode}>
+        <span className="hero-center__eyebrow">{heroIdentity.eyebrow}</span>
+        {heroCenterMode === "portrait" ? (
+          <img className="hero-center__portrait" src={heroIdentity.portrait} alt="Portrait of Wang Jinghan" />
+        ) : (
+          <span className="hero-center__mark" aria-hidden="true">{heroIdentity.mark}</span>
+        )}
+        <h1>{heroIdentity.name}</h1>
+        <p>{heroIdentity.tagline}</p>
       </div>
-      <img className="scroll-sloth" data-motion="scroll-sloth" src="/assets/shared/sloth.jpg" alt="Scroll down" />
-      <DevReferenceOverlay src="/@fs/D:/桌面/erbao/how-i-see/dev-references/REF-01-HOME.png" />
-    </ReferenceArtboard>
+
+      <div className="hero-fragments" aria-label="Jinghan's creative world">
+        {heroFragments.map((fragment) => <HeroFragmentCard key={fragment.id} fragment={fragment} />)}
+      </div>
+
+      <div className="hero-scroll-cue" aria-hidden="true">
+        <img src="/assets/shared/sloth.jpg" alt="" />
+        <span>scroll to unfold</span>
+      </div>
+    </section>
   );
 }

@@ -7,17 +7,17 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://how-i-see-wang-jinghan.judy40202.chatgpt.site"),
   title: {
-    default: "How I See — Wang Jinghan",
-    template: "%s — How I See",
+    default: "Jinghan — Personal Archive",
+    template: "%s — Jinghan",
   },
-  description: "Observing, feeling, remembering — a personal portfolio by Wang Jinghan.",
+  description: "Observing, listening, and making — the personal visual archive of Wang Jinghan.",
   openGraph: {
-    title: "How I See — Wang Jinghan",
-    description: "Observing, feeling, remembering — a personal portfolio by Wang Jinghan.",
+    title: "Jinghan — Personal Archive",
+    description: "Observing, listening, and making — the personal visual archive of Wang Jinghan.",
     type: "website",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "How I See — observing, feeling, remembering" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Jinghan — a personal archive in sound, image, and memory" }],
   },
-  twitter: { card: "summary_large_image", images: ["/og.jpg"] },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

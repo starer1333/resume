@@ -3,6 +3,31 @@
 import gsap from "gsap";
 
 export const MOTION_CONFIG = {
+  heroUnfold: {
+    trigger: 72,
+    mobileTrigger: 42,
+    duration: 0.86,
+    stagger: 0.075,
+    collapsedScale: 0.56,
+    collapsedOpacity: 0.72,
+    collapsedDepth: -110,
+    collapsedOffsets: [
+      { x: -108, y: -70 }, { x: 108, y: -68 },
+      { x: -132, y: 4 }, { x: 134, y: 6 },
+      { x: -88, y: 82 }, { x: 94, y: 84 },
+    ],
+    perspective: 1400,
+    centerPulse: 0.38,
+  },
+  heroTilt: {
+    rotateX: 3.4,
+    rotateY: 4.6,
+    lift: -7,
+    depth: 22,
+    scale: 1.022,
+    duration: 0.32,
+    resetDuration: 0.28,
+  },
   collageEntrance: {
     anchorDuration: 0.52,
     itemDuration: 1.05,

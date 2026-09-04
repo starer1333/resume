@@ -121,7 +121,7 @@ export function NotesScene() {
       {site.notes.map((note, index) => {
         const [left, top, width, height, labelLeft, labelTop, labelWidth, labelHeight] = positions[index];
         return <article key={note.title}>
-          <a className="note-frame art-link" data-motion="note-frame" data-motion-index={index} href={`${site.email}?subject=${encodeURIComponent(note.title)}`} aria-label={`Read ${note.title}`} style={{ left, top, width, height }}><img src={`/assets/notes/${note.asset}.webp`} alt={note.title} /></a>
+          <div className="note-frame art-link" data-motion="note-frame" data-motion-index={index} style={{ left, top, width, height }}><img src={`/assets/notes/${note.asset}.webp`} alt={note.title} /></div>
           <div className="museum-label" data-motion="note-caption" style={{ left: labelLeft, top: labelTop, width: labelWidth, height: labelHeight }}><strong>{note.title}</strong><span>{note.date}</span><small>{note.kind}</small></div>
         </article>;
       })}

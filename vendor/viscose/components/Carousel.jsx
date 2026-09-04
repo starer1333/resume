@@ -41,7 +41,6 @@ export default function Carousel() {
   const containerRef = useRef(null);
   const listRef = useRef(null);
   const itemsRef = useRef([]);
-  const loaderRef = useRef(null);
   const liveRef = useRef(null);
   const cutRef = useRef(null);
   // Per side: the box that positions the lockup, the filtered wrapper the goo
@@ -55,7 +54,6 @@ export default function Carousel() {
   useEffect(() => {
     const container = containerRef.current;
     const listEl = listRef.current;
-    const loaderEl = loaderRef.current;
     // Async work (atlas decode, the lil-gui import) can land after cleanup
     // under StrictMode's double mount. Everything deferred checks this.
     let disposed = false;
@@ -66,7 +64,7 @@ export default function Carousel() {
     // spread:   the rest peel off it and the ring draws
     // spin:     whole-ring rotation, radians
     // shift:    the ring moves off centre and resizes
-    const state = { progress: 0, launch: 0, spread: 0, spin: 0, shift: 0 };
+    const state = { progress: 1, launch: 1, spread: 1, spin: params.spinTurns * TAU, shift: 1 };
     // Read-only panel readouts, so an invalid ring is visible rather than
     // silent and the reference window can be matched to the live one.
     const info = { restingGap: 0, window: "", scale: 1, band: "wide" };
@@ -164,7 +162,6 @@ export default function Carousel() {
       {
         groups: metaRef.current,
         list: listEl,
-        loader: loaderEl,
         cut: cutRef.current,
         live: liveRef.current,
       },
@@ -172,21 +169,10 @@ export default function Carousel() {
     );
 
     /* ---------------------------------------------------------------- art */
-    // The atlas is bound on frame one and fills in as images arrive, so the
-    // seed can be born already wearing its own art while the rest are still
-    // in flight. It is also what gives the counter something to count.
-    let firstIn = false; // the seed's own cell is on the texture
-    let loadProg = 0; // and how much of the rest has arrived, 0..1
-
-    // Opened on the frame the counter reads 100, and by nothing else — that is
-    // what makes the number landing and the ring launching the same moment.
-    let launchReady = false;
-    const readyWaiters = [];
-    const whenReady = (fn) => (launchReady ? fn() : readyWaiters.push(fn));
-
-    const atlas = buildAtlas(IMAGE_FILES, (p) => {
-      if (!disposed) loadProg = p;
-    });
+    // The atlas is attached immediately. Cells fill as local images decode;
+    // there is deliberately no visible progress UI and no gate before input.
+    let firstIn = false;
+    const atlas = buildAtlas(IMAGE_FILES);
 
     uniforms.uAtlas.value.dispose();
     atlas.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -198,9 +184,6 @@ export default function Carousel() {
 
     atlas.first.then(() => {
       if (!disposed) firstIn = true;
-    });
-    atlas.ready.then(() => {
-      if (!disposed) loadProg = 1;
     });
 
     /* --------------------------------------------------------------- size */
@@ -287,7 +270,7 @@ export default function Carousel() {
     // Which way "front" is: from the ring's centre toward the middle of the
     // screen. Once the ring is off centre that is no longer 3 o'clock.
     let frontAngle = 0;
-    let interactive = false;
+    let interactive = true;
     let spinVel = 0; // rad/s
     let dragging = false;
     let dragPrevAngle = 0;
@@ -522,28 +505,6 @@ export default function Carousel() {
         params.waveFreq,
         params.waveSpeed,
       );
-    };
-
-    /* ------------------------------------------------------- load counter */
-    // Reads whichever of the two is further behind: the art arriving, or the
-    // seed's own birth. Both have to finish before there is anything to
-    // launch, so counting bytes alone leaves the number sitting on 100 waiting
-    // for a condition nobody told the viewer about.
-    const loading = { shown: 0 };
-
-    const tickLoader = (dt) => {
-      const target = Math.min(loadProg, clamp01(state.progress));
-      loading.shown += (target - loading.shown) * chase(dt, params.loaderChase);
-
-      // Never 000; that reads as nothing happening.
-      const n = Math.min(100, Math.max(1, Math.round(loading.shown * 100)));
-      if (loaderEl) loaderEl.textContent = String(n).padStart(3, "0");
-
-      if (!launchReady && n >= 100) {
-        launchReady = true;
-        for (const fn of readyWaiters) fn();
-        readyWaiters.length = 0;
-      }
     };
 
     /* ------------------------------------------------------- the carousel */
@@ -967,174 +928,38 @@ export default function Carousel() {
       uniforms.uSheen.value = on ? params.sheen : 0;
     };
 
-    /* ------------------------------------------------------- entry timeline */
-    // Bumped per build, so a hold left waiting on a run that has since been
-    // replaced cannot resume a timeline nobody is watching.
-    let entryGen = 0;
-
-    const build = () => {
-      interactive = false;
-      announced = -1;
+    /* ----------------------------------------------- immediate final state */
+    const applyFinalState = () => {
+      gsap.killTweensOf(state);
+      state.progress = 1;
+      state.launch = 1;
+      state.spread = 1;
+      state.spin = params.spinTurns * TAU;
+      state.shift = 1;
       spinVel = 0;
       dragging = false;
       settling = false;
-      // The timeline tweens state.spin, so a pick in flight has to be off the
-      // same property before it starts.
-      stopPick();
-
-      const gen = ++entryGen;
-      // Only the first run has anything to wait for; a replay should not flash
-      // the counter back up.
-      if (loaderEl) gsap.set(loaderEl, { opacity: launchReady ? 0 : 1 });
-
-      const tl = gsap.timeline({
-        delay: 0.25,
-        onComplete: () => {
-          interactive = true;
-        },
-      });
-
-      tl.fromTo(
-        state,
-        { progress: 0, launch: 0, spread: 0, spin: 0, shift: 0 },
-        { progress: 1, duration: 1.2, ease: "power2.out" },
-      );
-
-      // Formed and sitting at centre. It stays there until the counter lands,
-      // so the ring can never unfurl into cards with nothing on them. Usually
-      // there is nothing left to wait for by the time the playhead arrives —
-      // the counter is paced against this same birth.
-      tl.addPause(">", () => {
-        whenReady(() => {
-          gsap.delayedCall(params.holdAfter, () => {
-            if (disposed || gen !== entryGen) return;
-            tl.resume();
-            if (loaderEl) {
-              gsap.to(loaderEl, {
-                opacity: 0,
-                duration: params.loaderOut,
-                ease: "power2.in",
-              });
-            }
-          });
-        });
-      });
-
-      tl.to(state, {
-        launch: 1,
-        duration: params.launchTime,
-        ease: "power2.inOut",
-      });
-
-      // Absolute positions from here, so the stage can be dropped anywhere
-      // inside the spread rather than only after it.
-      const spreadStart = tl.duration() - 0.15;
-      tl.to(
-        state,
-        { spread: 1, duration: params.spreadTime, ease: params.spreadEase },
-        spreadStart,
-      );
-
-      const stageStart = spreadStart + params.stageAt * params.spreadTime;
-      tl.to(
-        state,
-        {
-          spin: params.spinTurns * TAU,
-          duration: params.spinTime,
-          ease: params.spinEase,
-        },
-        stageStart + params.spinDelay,
-      );
-      tl.to(
-        state,
-        { shift: 1, duration: params.moveTime, ease: params.moveEase },
-        stageStart + params.moveDelay,
-      );
-
-      const textStart = spreadStart + params.textAt * params.spreadTime;
-
-      if (splitText.chars.length) {
-        tl.fromTo(
-          splitText.chars,
-          { value: 0 },
-          {
-            value: 1,
-            duration: params.textTime,
-            ease: params.textEase,
-            stagger: params.textStagger,
-          },
-          textStart,
-        );
-      }
-
-      // The heading has done its job by the time the ring is in place, and
-      // from then on it is behind the front card. Timed off whichever staging
-      // move finishes last, so it still lands with them if either is retimed.
-      if (params.textOut && splitText.fades.length) {
-        const landed = Math.max(
-          stageStart + params.spinDelay + params.spinTime,
-          stageStart + params.moveDelay + params.moveTime,
-        );
-        tl.fromTo(
-          splitText.fades,
-          { value: 1 },
-          {
-            value: 0,
-            duration: params.textOutTime,
-            ease: params.textOutEase,
-            stagger: params.textStagger,
-          },
-          Math.max(0, landed + params.textOutAt),
-        );
-      }
-
-      // The column arrives with the heading, by which point there is a front
-      // for it to be reading.
-      if (listEl) {
-        tl.fromTo(
-          listEl,
-          { opacity: 0 },
-          { opacity: 1, duration: params.textTime, ease: params.textEase },
-          textStart,
-        );
-      }
-
-      return tl;
+      interactive = true;
+      if (listEl) gsap.set(listEl, { opacity: 1 });
     };
+
+    const replay = applyFinalState;
 
     tag.build();
     tag.load(() => {
       if (!disposed) tag.build();
     });
     styleMeta();
+    applyFinalState();
 
-    let tl = null;
-    const replay = () => {
-      tl?.kill();
-      tl = build();
-    };
-
-    // The entry is built once, and not until the faces are in. Every glyph
-    // mask is sized by the glyph inside it, and the timeline holds direct
-    // references to the uniforms those masks own — so rebuilding the text
-    // later means rebuilding the timeline, which snaps state back to zero and
-    // restarts the whole entry. On a warm cache fonts resolve in milliseconds
-    // and that was invisible; on a cold one they arrive late and it reads as
-    // the page going blank and starting over.
-    const startEntry = () => {
-      if (disposed || tl) return;
+    // Refresh typography when web fonts settle without resetting the ring or
+    // delaying the first usable frame.
+    (document.fonts?.ready ?? Promise.resolve()).then(() => {
+      if (disposed) return;
       splitText.build();
       tag.build();
       styleMeta();
-      replay();
-    };
-
-    // fonts.ready is reliable, but nothing here is worth a permanently blank
-    // page if it ever is not.
-    const fontFallback = setTimeout(startEntry, 3000);
-    (document.fonts?.ready ?? Promise.resolve())
-      .then(startEntry)
-      .catch(startEntry);
+    });
 
     /* ------------------------------------------------------- dev controls */
     let gui;
@@ -1247,7 +1072,6 @@ export default function Carousel() {
         }
       }
 
-      tickLoader(dt);
       updatePointer(dt);
       layout(dt);
 
@@ -1272,7 +1096,6 @@ export default function Carousel() {
     return () => {
       disposed = true;
       clearTimeout(holdTimer);
-      clearTimeout(fontFallback);
       renderer.setAnimationLoop(null);
 
       window.removeEventListener("resize", onResize);
@@ -1284,7 +1107,6 @@ export default function Carousel() {
       container.removeEventListener("pointerleave", onPointerLeave);
       container.removeEventListener("click", onClick);
 
-      tl?.kill();
       gsap.killTweensOf(splitText.chars);
       gsap.killTweensOf(splitText.fades);
       gsap.killTweensOf(listEl);
@@ -1405,13 +1227,6 @@ export default function Carousel() {
           </div>
         );
       })}
-
-      {/* 001 to 100. Holds the entry at the seed until it gets there. */}
-      <div
-        ref={loaderRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed left-1/2 z-10 -translate-x-1/2 tracking-[-0.01em] text-[#0a0a0a]"
-      />
 
       <div ref={liveRef} aria-live="polite" className="sr-only" />
 

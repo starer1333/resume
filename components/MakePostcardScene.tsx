@@ -17,7 +17,7 @@ export function MakePostcardScene() {
       <img className="postcard-art" src="/assets/make-postcard/postcard.webp" alt="Vintage postcard describing things Wang Jinghan makes" />
       <img className="postcard-annotation" src="/assets/make-postcard/annotation.webp" alt="Collect some examples of my work" />
       {stamps.map(([name, left, top, width, height], index) => (
-        <a key={name} className="postcard-stamp art-link" href={`${site.email}?subject=${encodeURIComponent(site.makeProjects[index])}`} aria-label={site.makeProjects[index]} style={{ left, top, width, height }}><img src={`/assets/make-postcard/${name}.webp`} alt="" /></a>
+        <div key={name} className="postcard-stamp art-link" style={{ left, top, width, height }}><img src={`/assets/make-postcard/${name}.webp`} alt={site.makeProjects[index]} /></div>
       ))}
       <DevReferenceOverlay src="/@fs/D:/桌面/erbao/how-i-see/dev-references/REF-06-MAKE-POSTCARD.png" />
     </ReferenceArtboard>

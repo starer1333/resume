@@ -3,8 +3,8 @@ import { CardsScene } from "@/components/CardsScene";
 import { HomeScene } from "@/components/HomeScene";
 
 export const metadata: Metadata = {
-  title: "How I See — Wang Jinghan",
-  description: "Observing, feeling, remembering — a personal portfolio by Wang Jinghan.",
+  title: "Jinghan — Personal Archive",
+  description: "A personal field note in sound, image, and memory.",
 };
 
 export default function Home() {

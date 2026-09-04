@@ -19,7 +19,7 @@ test("all public portfolio routes server-render", async () => {
 });
 
 test("production assets and attribution exist without raw references", async () => {
-  await access(new URL("../public/og.jpg", import.meta.url));
+  await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../vendor/viscose/LICENSE", import.meta.url));
   await assert.rejects(access(new URL("../public/__references", import.meta.url)));
   const pkg = await readFile(new URL("../package.json", import.meta.url), "utf8");

@@ -134,11 +134,11 @@ function createGroup(side, groups, params) {
 }
 
 /**
- * refs: { groups, list, loader, cut, live } — DOM handed over from the
+ * refs: { groups, list, cut, live } — DOM handed over from the
  * component. `groups` is the shape the JSX populates, one entry per side.
  */
 export function createMeta(refs, params) {
-  const { groups, list, loader, cut, live } = refs;
+  const { groups, list, cut, live } = refs;
   const left = createGroup("left", groups, params);
   const right = createGroup("right", groups, params);
 
@@ -232,16 +232,8 @@ export function createMeta(refs, params) {
       }
     }
 
-    // The column and the counter are set from here too, so all the type moves
-    // as one piece across a breakpoint instead of half of it growing.
+    // The project column follows the same responsive type scale.
     if (list) list.style.fontSize = `${params.listSize * textK}vw`;
-    if (loader) {
-      loader.style.bottom = `${params.loaderBottom}vh`;
-      loader.style.fontFamily = smallFace;
-      loader.style.fontSize = small;
-      loader.style.fontWeight = smallWeight;
-    }
-
     setThreshold();
   };
 
