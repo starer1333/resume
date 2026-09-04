@@ -1139,10 +1139,7 @@ export default function Carousel() {
     /* ------------------------------------------------------- dev controls */
     let gui;
 
-    if (
-      process.env.NODE_ENV === "development" &&
-      new URLSearchParams(window.location.search).has("viscoseGui")
-    ) {
+    if (process.env.NODE_ENV === "development") {
       Promise.all([import("lil-gui"), import("./ring/gui")]).then(
         ([{ default: GUI }, { mountGui }]) => {
           if (disposed) return;

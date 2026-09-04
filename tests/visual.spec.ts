@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const output = resolve("test-results/reference-renders");
 test.use({ viewport: { width: 1672, height: 941 }, deviceScaleFactor: 1 });
 test.describe.configure({ mode: "serial" });
-test.setTimeout(60_000);
+test.setTimeout(240_000);
 
 test.beforeAll(async () => { await mkdir(output, { recursive: true }); });
 
@@ -21,13 +21,6 @@ test("reference artboards at 1672x941", async ({ page }) => {
   await page.waitForTimeout(150);
   await page.screenshot({ path: resolve(output, "cards.png"), animations: "disabled" });
   await capture(page, "/about", "about");
-  await capture(page, "/observe", "observe", 4200);
-  const ringBefore = await page.locator("canvas").screenshot();
-  await page.mouse.move(820, 470);
-  await page.mouse.wheel(0, 520);
-  await page.waitForTimeout(350);
-  const ringAfter = await page.locator("canvas").screenshot();
-  expect(ringAfter.equals(ringBefore)).toBe(false);
   await capture(page, "/question", "question");
   const spatial = page.locator(".question-canvas");
   const transformBefore = await spatial.evaluate((element) => getComputedStyle(element).transform);
@@ -46,6 +39,21 @@ test("reference artboards at 1672x941", async ({ page }) => {
 
 
 
+
+test("observe reaches the upstream interactive state", async ({ page }) => {
+  await page.goto("http://localhost:3000/observe", { waitUntil: "networkidle" });
+  await expect(page.locator(".observe-carousel > div").nth(3)).toHaveText("100", { timeout: 60_000 });
+  await expect(page.locator('[aria-live="polite"]')).not.toHaveText("", { timeout: 180_000 });
+  await expect(page.locator('ul[aria-label="Projects"] > li')).toHaveCount(18);
+  await expect(page.locator(".observe-stage .site-logo")).toBeVisible();
+  await page.screenshot({ path: resolve(output, "observe.png"), animations: "disabled" });
+  const ringBefore = await page.screenshot();
+  await page.mouse.move(820, 470);
+  await page.mouse.wheel(0, 520);
+  await page.waitForTimeout(700);
+  const ringAfter = await page.screenshot();
+  expect(ringAfter.equals(ringBefore)).toBe(false);
+});
 
 test("mobile fallback fits without horizontal page overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

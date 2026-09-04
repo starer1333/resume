@@ -1,4 +1,4 @@
-﻿# How I See
+# How I See
 
 A public, interactive personal portfolio for Wang Jinghan. The desktop compositions reproduce nine approved 1672×941 artboards and preserve their collage, paper, postcard, museum-frame, and physical-object layouts.
 
@@ -31,7 +31,7 @@ In development, press `R` to toggle a reference overlay and `[` / `]` to change 
 
 ## Replacing content
 
-Editable text, destinations, project names, notes, and personal details live in `src/content/site.ts`. Replace visual assets without changing their filenames or aspect ratios under:
+Editable text, destinations, notes, and personal details live in `src/content/site.ts`. Observe project labels and its upstream-ordered image map live in `vendor/viscose/components/ring/projects.js`. Replace visual assets without changing their filenames or aspect ratios under:
 
 - `public/assets/home/`
 - `public/assets/about/`

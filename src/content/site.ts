@@ -33,13 +33,6 @@ export const site = {
     interests: "Observe / Question / Make / Notes / Unfinished",
     since: "2023",
   },
-  photographyProjects: [
-    "Window Light", "Late Afternoon", "People Waiting", "Collect Moments",
-    "Quiet Rooms", "Sea Haze", "Petals", "Everyday Notes", "Faded Film",
-    "Blooming Days", "Open Windows", "Little Things", "Soft Distance",
-    "Morning Calm", "Passing Time", "Still Here", "Daydreams",
-    "Memory Lane", "Golden Hour",
-  ],
   researchProjects: [
     "Memory", "Identity", "Attention", "Connection", "Meaning",
   ],

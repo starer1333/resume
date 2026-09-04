@@ -56,12 +56,10 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 .role-stamp { z-index: 5; object-fit: cover; }
 .passport-art { z-index: 2; left: 865px; top: 0; width: 807px; height: 941px; object-fit: cover; }
 
-/* Observe: the unchanged Viscose WebGL engine is route-local and lazy loaded. */
-.observe-stage { color: #234f32; }
+/* Observe: upstream Viscose UI and interaction parameters, route-local and lazy loaded. */
+.observe-stage { position: relative; width: 100vw; height: 100vh; min-height: 100svh; background: #fafafa; overflow: hidden; overscroll-behavior: none; }
 .observe-carousel { position: absolute; inset: 0; z-index: 5; }
-.observe-carousel > div:nth-of-type(2), .observe-carousel > div:nth-of-type(3), .observe-carousel > div:nth-of-type(4) { display: none !important; }
-.observe-carousel > ul { right: 104px !important; top: 142px !important; font-size: 17px !important; line-height: 2.08 !important; color: #456b4c !important; text-align: left !important; }
-.observe-carousel > ul li { min-width: 185px; }
+.observe-carousel canvas { display: block; }
 .observe-stage .site-logo { z-index: 45; }
 
 /* Question spatial research canvas. */

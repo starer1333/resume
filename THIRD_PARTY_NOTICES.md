@@ -1,4 +1,4 @@
-﻿# Third-Party Notices
+# Third-Party Notices
 
 ## Viscose carousel
 
@@ -22,4 +22,4 @@ Used for pan, zoom, pinch, and trackpad interaction on `/question`.
 
 ## Fonts
 
-Fraunces and Caveat are delivered via Fontsource packages and are licensed under the SIL Open Font License 1.1. No proprietary font files are included.
+Fraunces and Caveat are delivered via Fontsource packages under the SIL Open Font License 1.1. The Observe route also uses upstream Satoshi (Indian Type Foundry Free Font Licence via Fontshare) and Geist (SIL Open Font License 1.1). PP Neue Montreal is not included.

@@ -33,8 +33,8 @@ export function defaultParams() {
   return {
     // -- fit ------------------------------------------------------------
     // 14" MacBook Pro at default scaling: 3024x1964 native, 1512x982 points.
-    refWidth: 1672,
-    refHeight: 941, // viewport, i.e. screen less menu bar and browser chrome
+    refWidth: 1512,
+    refHeight: 870, // viewport, i.e. screen less menu bar and browser chrome
     fitHeight: 0, // 0 = width alone drives scale, 1 = whichever axis is tighter
     minScale: 0.5, // a phone is not a small desktop; bracket the extremes
     maxScale: 1.75,
@@ -56,9 +56,9 @@ export function defaultParams() {
     tightMetaWidth: 70, // vw of box, and so of filter region, around it
 
     // -- geometry, all at the reference window ---------------------------
-    planeSize: 118, // long edge in px; aspect locked at 1.5 : 1
+    planeSize: 90, // long edge in px; aspect locked at 1.5 : 1
     count: PROJECTS.length, // one plane per project, so the deal comes out even
-    ringRadius: 390,
+    ringRadius: 340,
     seed: 0, // where plane 0 sits, degrees (0 = 3 o'clock)
     radial: true, // long edge points outward; off = long edge along the ring
     radius: 6, // corner
@@ -75,23 +75,23 @@ export function defaultParams() {
     loaderOut: 0.45, // seconds to fade once the hold lets go
 
     // -- entry timing ----------------------------------------------------
-    stagger: 0,
-    launchTime: 0.01,
+    stagger: 0.34,
+    launchTime: 1.95,
     spreadEase: "power2.out",
-    spreadTime: 0.01,
+    spreadTime: 3.6,
     // Where the ring goes once formed. stageAt is a fraction of the spread, so
     // 0.5 starts the move midway through the ring drawing.
-    stageAt: 0,
-    spinTurns: 0,
-    spinTime: 0.01,
+    stageAt: 0.7,
+    spinTurns: 1,
+    spinTime: 2.6,
     spinEase: "power2.inOut",
     spinDelay: 0,
-    posX: -0.045, // fraction of half the viewport width
+    posX: -2, // fraction of half the viewport width
     posY: 0,
-    endScale: 1.05,
-    moveTime: 0.01,
+    endScale: 4.46,
+    moveTime: 2.2,
     moveEase: "power2.inOut",
-    moveDelay: 0,
+    moveDelay: 0.2,
 
     // -- scroll / drag / click, live once the entry finishes --------------
     scrollSpeed: 0.0022, // rad/s of angular velocity per px of wheel delta
@@ -105,17 +105,17 @@ export function defaultParams() {
     pickEase: "power3.inOut",
 
     // -- the intro heading, in the scene ---------------------------------
-    text: "Observe '26",
-    textSize: 46,
-    textFont: "Fraunces",
+    text: "Works '26",
+    textSize: 41,
+    textFont: "Satoshi",
     textWeight: 400,
     textTracking: 0, // em
-    textColor: "#2f6540",
+    textColor: "#0a0a0a",
     textAt: 0.42, // fraction of the spread
-    textTime: 0.01,
+    textTime: 0.95,
     textStagger: 0.015,
     textEase: "power4.out",
-    textOut: false,
+    textOut: true,
     textOutAt: -0.5, // seconds relative to the ring landing; negative = early
     textOutTime: 0.7,
     textOutEase: "power2.in",
@@ -134,7 +134,7 @@ export function defaultParams() {
     idxSize: (16 / 1440) * 100, // a step lighter and smaller than the name
     idxFont: "Geist",
     idxWeight: 400,
-    listSize: 0.95, // vw; the column's line height is unitless so rows follow
+    listSize: 0.9, // vw; the column's line height is unitless so rows follow
 
     // The morph between one card's words and the next.
     nameMorphTime: 1.2,
@@ -145,7 +145,7 @@ export function defaultParams() {
     nameSoften: 0.35, // px of blur after it, standing in for antialiasing
 
     // -- glass lip along the top and bottom ------------------------------
-    glass: false,
+    glass: true,
     bandTop: 0.08, // fraction of viewport height
     bandBottom: 0.08,
     refract: 60, // px the image is pulled in at the very edge

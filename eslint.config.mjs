@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "vendor/viscose-upstream/**",
     "test-results/**",
+    "work/**",
     "dev-references/**",
   ]),
   eslint.configs.recommended,
