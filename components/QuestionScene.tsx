@@ -1,6 +1,8 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { createPointerMicroMotion, hasFinePointer, MOTION_CONFIG, prefersReducedMotion } from "@/src/motion/portfolioMotion";
 import { DevReferenceOverlay } from "./DevReferenceOverlay";
 import { ReferenceArtboard } from "./ReferenceArtboard";
 import { SiteNav } from "./SiteNav";
@@ -20,6 +22,20 @@ const scraps = [
   ["meadow", 1066, 727, 246, 180],
 ] as const;
 
+function QuestionScrap({ name, left, top, width, height }: { name: string; left: number; top: number; width: number; height: number }) {
+  const itemRef = useRef<HTMLImageElement>(null);
+
+  useLayoutEffect(() => {
+    const item = itemRef.current;
+    if (!item) return;
+    item.dataset.motionReady = "true";
+    if (prefersReducedMotion() || !hasFinePointer()) return;
+    return createPointerMicroMotion(item, MOTION_CONFIG.question);
+  }, []);
+
+  return <img ref={itemRef} className="collage-piece" data-motion="question-item" src={`/assets/question/${name}.webp`} alt="" aria-hidden="true" style={{ left, top, width, height }} />;
+}
+
 export function QuestionScene() {
   return (
     <ReferenceArtboard className="paper-stage question-stage">
@@ -34,9 +50,8 @@ export function QuestionScene() {
               <span aria-hidden="true">♡</span>
             </header>
             {scraps.map(([name, left, top, width, height]) => (
-              <img key={name} className="collage-piece" src={`/assets/question/${name}.webp`} alt="" aria-hidden="true" style={{ left, top, width, height }} />
+              <QuestionScrap key={name} name={name} left={left} top={top} width={width} height={height} />
             ))}
-            <img className="scroll-doodle question-scroll" src="/assets/shared/scroll.webp" alt="Scroll down" />
             <p className="question-more">more to explore ⟶*</p>
             <DevReferenceOverlay src="/@fs/D:/桌面/erbao/how-i-see/dev-references/REF-08-QUESTION.png" />
           </div>

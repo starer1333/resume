@@ -49,11 +49,12 @@ export function HomeScene() {
     const context = gsap.context(() => {
       const anchor = stage.querySelector<HTMLElement>('[data-motion="collage-anchor"]');
       const items = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="collage-item"]'));
-      const dog = stage.querySelector<HTMLElement>('[data-motion="scroll-dog"]');
-      if (!anchor || !dog) return;
+      const sloth = stage.querySelector<HTMLElement>('[data-motion="scroll-sloth"]');
+      if (!anchor || !sloth) return;
 
       if (prefersReducedMotion()) {
         items.forEach((item) => { item.dataset.motionReady = "true"; });
+        sloth.dataset.motionReady = "true";
         return;
       }
 
@@ -113,23 +114,25 @@ export function HomeScene() {
           },
         }, 0.08);
 
-      const cardsStage = stage.parentElement?.nextElementSibling?.querySelector<HTMLElement>('[data-motion="cards-section"]');
-      const cardsShell = cardsStage?.closest<HTMLElement>(".artboard-shell") ?? cardsStage;
-      if (cardsShell) {
-        gsap.to(dog, {
-          xPercent: MOTION_CONFIG.dogExit.xPercent,
-          y: MOTION_CONFIG.dogExit.y,
-          rotation: MOTION_CONFIG.dogExit.rotation,
-          scale: MOTION_CONFIG.dogExit.scale,
+      const shell = stage.closest<HTMLElement>(".artboard-shell") ?? stage;
+      gsap.timeline({
+        scrollTrigger: {
+          trigger: shell,
+          start: MOTION_CONFIG.slothExit.start,
+          end: MOTION_CONFIG.slothExit.end,
+          scrub: MOTION_CONFIG.slothExit.scrub,
+        },
+      })
+        .to(sloth, { duration: MOTION_CONFIG.slothExit.holdProgress })
+        .to(sloth, {
+          xPercent: MOTION_CONFIG.slothExit.xPercent,
+          y: MOTION_CONFIG.slothExit.y,
+          rotation: MOTION_CONFIG.slothExit.rotation,
+          scale: MOTION_CONFIG.slothExit.scale,
+          duration: 1 - MOTION_CONFIG.slothExit.holdProgress,
           ease: "none",
-          scrollTrigger: {
-            trigger: cardsShell,
-            start: MOTION_CONFIG.dogExit.start,
-            end: MOTION_CONFIG.dogExit.end,
-            scrub: MOTION_CONFIG.dogExit.scrub,
-          },
         });
-      }
+      sloth.dataset.motionReady = "true";
     }, stage);
 
     return () => {
@@ -166,7 +169,7 @@ export function HomeScene() {
         <h1>HOW I SEE</h1>
         <p>observing. feeling. remembering.</p>
       </div>
-      <img className="scroll-doodle" data-motion="scroll-dog" src="/assets/shared/scroll.webp" alt="Scroll down" />
+      <img className="scroll-sloth" data-motion="scroll-sloth" src="/assets/shared/sloth.jpg" alt="Scroll down" />
       <DevReferenceOverlay src="/@fs/D:/桌面/erbao/how-i-see/dev-references/REF-01-HOME.png" />
     </ReferenceArtboard>
   );

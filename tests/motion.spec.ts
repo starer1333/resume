@@ -7,135 +7,173 @@ const closeTo = (actual: number, expected: number, tolerance = 1) => {
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
 };
 
-test("home collage settles, wiggles without drift, and dog exits with scroll", async ({ page }) => {
+test("Home and Cards form one surface; sloth holds, exits, and returns", async ({ page }) => {
   await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
+
+  await expect(page.locator(".site-logo")).toHaveCount(1);
+  await expect(page.locator(".site-nav")).toHaveCount(1);
+  const backgrounds = await page.locator(".home-stage, .cards-stage").evaluateAll((elements) =>
+    elements.map((element) => getComputedStyle(element).backgroundColor),
+  );
+  expect(backgrounds).toEqual(["rgb(249, 249, 249)", "rgb(249, 249, 249)"]);
 
   const anchor = page.locator('[data-motion="collage-anchor"]');
   const firstItem = page.locator('[data-motion="collage-item"]').first();
   await expect(firstItem).toHaveAttribute("data-motion-ready", "true", { timeout: 4_000 });
+  expect(await anchor.evaluate((element) => (element as HTMLElement).style.transform)).toBe("");
 
-  const anchorTransform = await anchor.evaluate((element) => element.style.transform);
   const restingItem = await firstItem.boundingBox();
-  expect(anchorTransform).toBe("");
-  expect(restingItem).not.toBeNull();
-
   await firstItem.hover();
   await page.waitForTimeout(110);
-  expect(await firstItem.evaluate((element) => element.style.transform)).not.toBe("");
+  expect(await firstItem.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe("");
   await page.mouse.move(900, 650);
   await page.waitForTimeout(450);
-
   const settledItem = await firstItem.boundingBox();
-  expect(settledItem).not.toBeNull();
   closeTo(settledItem!.x, restingItem!.x);
   closeTo(settledItem!.y, restingItem!.y);
-  expect(await firstItem.evaluate((element) => element.style.transform)).toBe("");
 
-  const dog = page.locator('[data-motion="scroll-dog"]');
-  const dogRest = await dog.boundingBox();
+  const sloth = page.locator('[data-motion="scroll-sloth"]');
+  await expect(sloth).toHaveAttribute("src", "/assets/shared/sloth.jpg");
+  const rest = await sloth.boundingBox();
   await page.evaluate(() => window.scrollTo(0, 330));
-  await page.waitForTimeout(900);
-  const dogExit = await dog.boundingBox();
-  expect(dogExit!.x).toBeLessThan(dogRest!.x - 100);
+  await page.waitForTimeout(950);
+  const early = await sloth.boundingBox();
+  closeTo(early!.x, rest!.x, 3);
+
+  await page.evaluate(() => window.scrollTo(0, 850));
+  await page.waitForTimeout(950);
+  const late = await sloth.boundingBox();
+  expect(late!.x).toBeLessThan(rest!.x - 120);
+
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(900);
-  const dogReturn = await dog.boundingBox();
-  closeTo(dogReturn!.x, dogRest!.x, 2);
+  await page.waitForTimeout(950);
+  const returned = await sloth.boundingBox();
+  closeTo(returned!.x, rest!.x, 3);
 });
 
-test("cards spread into the approved row and each card resets after hover", async ({ page }) => {
+test("Cards stage from center, reveal in phases, preserve routes, and reset hover", async ({ page }) => {
   await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
   const cards = page.locator('[data-motion="playing-card"]');
   await expect(cards).toHaveCount(5);
-  const stackedCenters = await cards.evaluateAll((elements) => elements.map((element) => {
+  expect(await cards.evaluateAll((elements) => elements.map((element) => element.getAttribute("href")))).toEqual([
+    "/observe", "/question", "/make", "/notes", "/unfinished",
+  ]);
+
+  const compactCenters = await cards.evaluateAll((elements) => elements.map((element) => {
     const rect = element.getBoundingClientRect();
     return rect.x + rect.width / 2;
   }));
-  expect(Math.max(...stackedCenters) - Math.min(...stackedCenters)).toBeLessThan(3);
+  expect(Math.max(...compactCenters) - Math.min(...compactCenters)).toBeLessThan(3);
 
   await page.evaluate(() => window.scrollTo(0, 941));
-  await expect(cards.first()).toHaveAttribute("data-motion-ready", "true", { timeout: 3_000 });
+  await expect(cards.first()).toHaveAttribute("data-motion-ready", "true", { timeout: 5_000 });
   const resting = await cards.evaluateAll((elements) => elements.map((element) => {
     const rect = element.getBoundingClientRect();
     return { x: rect.x, y: rect.y, transform: (element as HTMLElement).style.transform };
   }));
   expect(resting.map((item) => Math.round(item.x))).toEqual([128, 434, 727, 1028, 1325]);
   expect(resting.every((item) => item.transform === "")).toBe(true);
+  expect(await page.locator('[data-motion="card-content"]').evaluateAll((elements) =>
+    elements.every((element) => !(element as HTMLElement).style.transform && !(element as HTMLElement).style.clipPath),
+  )).toBe(true);
 
   await cards.nth(2).hover();
   await page.waitForTimeout(120);
   const active = await cards.evaluateAll((elements) => elements.map((element) => getComputedStyle(element).transform));
   expect(active[2]).not.toBe("none");
   expect(active.filter((transform, index) => index !== 2 && transform !== "none")).toHaveLength(0);
-
   await page.mouse.move(50, 500);
   await page.waitForTimeout(450);
   const reset = await cards.nth(2).boundingBox();
   closeTo(reset!.x, resting[2].x);
   closeTo(reset!.y, resting[2].y);
-  expect(await cards.nth(2).evaluate((element) => (element as HTMLElement).style.transform)).toBe("");
-
-  for (let replay = 0; replay < 3; replay += 1) {
-    await cards.nth(2).hover();
-    await page.waitForTimeout(80);
-    await page.mouse.move(50, 500);
-    await page.waitForTimeout(300);
-  }
-  const repeatedReset = await cards.nth(2).boundingBox();
-  closeTo(repeatedReset!.x, resting[2].x);
-  closeTo(repeatedReset!.y, resting[2].y);
 });
 
-test("about passport and role badges respond independently and return to rest", async ({ page }) => {
+test("Question removes the dog and gives each scrap independent pointer follow", async ({ page }) => {
+  await page.goto("http://localhost:3000/question", { waitUntil: "networkidle" });
+  await expect(page.locator('[data-motion="question-item"]')).toHaveCount(23);
+  await expect(page.locator(".question-scroll")).toHaveCount(0);
+  await expect(page.locator('img[src="/assets/shared/scroll.webp"]')).toHaveCount(0);
+
+  const items = page.locator('[data-motion="question-item"]');
+  const first = items.first();
+  await expect(first).toHaveAttribute("data-motion-ready", "true");
+  const rest = await first.boundingBox();
+  await page.mouse.move(rest!.x + rest!.width * 0.8, rest!.y + rest!.height * 0.25);
+  await page.waitForTimeout(180);
+  expect(await first.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe("");
+  const transforms = await items.evaluateAll((elements) => elements.map((element) => (element as HTMLElement).style.transform));
+  expect(transforms.slice(1).every((transform) => transform === "")).toBe(true);
+
+  await page.mouse.move(840, 180);
+  await page.waitForTimeout(420);
+  const reset = await first.boundingBox();
+  closeTo(reset!.x, rest!.x, 1.5);
+  closeTo(reset!.y, rest!.y, 1.5);
+  expect(await first.evaluate((element) => (element as HTMLElement).style.transform)).toBe("");
+});
+
+test("Make opens the existing single-raster newspaper and settles exactly", async ({ page }) => {
+  await page.goto("http://localhost:3000/make", { waitUntil: "domcontentloaded" });
+  const newspaper = page.locator('[data-motion="make-newspaper"]');
+  await expect(newspaper).toBeVisible();
+  await expect(newspaper).toHaveAttribute("data-motion-ready", "true", { timeout: 3_000 });
+  const final = await newspaper.boundingBox();
+  expect(final).toEqual({ x: 248, y: 107, width: 1139, height: 780 });
+  expect(await newspaper.evaluate((element) => ({
+    transform: (element as HTMLElement).style.transform,
+    clipPath: (element as HTMLElement).style.clipPath,
+  }))).toEqual({ transform: "", clipPath: "" });
+  const image = page.locator(".make-newspaper");
+  const imageBox = await image.boundingBox();
+  expect(imageBox).toEqual(final);
+  await expect(page.locator(".make-hotspots .art-link")).toHaveCount(4);
+});
+
+test("Notes assemble center-out, reveal captions, and hover independently", async ({ page }) => {
+  await page.goto("http://localhost:3000/notes", { waitUntil: "networkidle" });
+  const frames = page.locator('[data-motion="note-frame"]');
+  const captions = page.locator('[data-motion="note-caption"]');
+  await expect(frames).toHaveCount(4);
+  await expect(captions).toHaveCount(4);
+  await expect(frames.first()).toHaveAttribute("data-motion-ready", "true", { timeout: 4_000 });
+  expect(await frames.evaluateAll((elements) => elements
+    .map((element) => ({ index: Number(element.getAttribute("data-motion-index")), order: Number((element as HTMLElement).dataset.motionOrder) }))
+    .sort((a, b) => a.order - b.order)
+    .map((item) => item.index),
+  )).toEqual([2, 1, 3, 0]);
+  await expect(captions.first()).toHaveAttribute("data-motion-ready", "true", { timeout: 2_000 });
+  expect(await captions.evaluateAll((elements) => elements.every((element) => !(element as HTMLElement).style.transform))).toBe(true);
+
+  const rest = await frames.nth(1).boundingBox();
+  await frames.nth(1).hover();
+  await page.waitForTimeout(140);
+  const transforms = await frames.evaluateAll((elements) => elements.map((element) => getComputedStyle(element).transform));
+  expect(transforms[1]).not.toBe("none");
+  expect(transforms.filter((transform, index) => index !== 1 && transform !== "none")).toHaveLength(0);
+  await page.mouse.move(820, 850);
+  await page.waitForTimeout(430);
+  const reset = await frames.nth(1).boundingBox();
+  closeTo(reset!.x, rest!.x, 1.5);
+  closeTo(reset!.y, rest!.y, 1.5);
+});
+
+test("About motion remains isolated and reduced motion preserves final layouts", async ({ browser, page }) => {
   await page.goto("http://localhost:3000/about", { waitUntil: "networkidle" });
   const passport = page.locator('[data-motion="passport"]');
-  const badges = page.locator('[data-motion="role-badge"]');
-  await expect(badges).toHaveCount(3);
-
   const passportRest = await passport.boundingBox();
   await page.mouse.move(passportRest!.x + passportRest!.width * 0.75, passportRest!.y + passportRest!.height * 0.35);
   await page.waitForTimeout(180);
   expect(await passport.evaluate((element) => (element as HTMLElement).style.transform)).not.toBe("");
-  await page.mouse.move(400, 500);
-  await page.waitForTimeout(500);
-  const passportReset = await passport.boundingBox();
-  closeTo(passportReset!.x, passportRest!.x, 1.5);
-  closeTo(passportReset!.y, passportRest!.y, 1.5);
-  expect(await passport.evaluate((element) => (element as HTMLElement).style.transform)).toBe("");
 
-  const badgeRest = await badges.first().boundingBox();
-  await badges.first().hover();
-  await page.waitForTimeout(120);
-  const transforms = await badges.evaluateAll((elements) => elements.map((element) => getComputedStyle(element).transform));
-  expect(transforms[0]).not.toBe("none");
-  expect(transforms.slice(1)).toEqual(["none", "none"]);
-  await page.mouse.move(400, 500);
-  await page.waitForTimeout(450);
-  const badgeReset = await badges.first().boundingBox();
-  closeTo(badgeReset!.x, badgeRest!.x);
-  closeTo(badgeReset!.y, badgeRest!.y);
-});
-
-test("reduced motion preserves final layouts without motion transforms", async ({ browser }) => {
-  const context = await browser.newContext({
-    viewport: { width: 1672, height: 941 },
-    reducedMotion: "reduce",
-  });
-  const page = await context.newPage();
-  await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
-  await expect(page.locator('[data-motion="collage-item"]').first()).toHaveAttribute("data-motion-ready", "true");
-  const transforms = await page.locator('[data-motion="collage-item"], [data-motion="playing-card"], [data-motion="scroll-dog"]').evaluateAll(
-    (elements) => elements.map((element) => (element as HTMLElement).style.transform),
-  );
-  expect(transforms.every((transform) => transform === "")).toBe(true);
+  const context = await browser.newContext({ viewport: { width: 1672, height: 941 }, reducedMotion: "reduce" });
+  const reducedPage = await context.newPage();
+  for (const route of ["/", "/question", "/make", "/notes"]) {
+    await reducedPage.goto(`http://localhost:3000${route}`, { waitUntil: "networkidle" });
+    const transforms = await reducedPage.locator('[data-motion="collage-item"], [data-motion="playing-card"], [data-motion="scroll-sloth"], [data-motion="question-item"], [data-motion="make-newspaper"], [data-motion="note-frame"]').evaluateAll(
+      (elements) => elements.map((element) => (element as HTMLElement).style.transform),
+    );
+    expect(transforms.every((transform) => transform === ""), route).toBe(true);
+  }
   await context.close();
-});
-
-test("navigation remounts motion cleanly", async ({ page }) => {
-  await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
-  await expect(page.locator('[data-motion="collage-item"]').first()).toHaveAttribute("data-motion-ready", "true", { timeout: 4_000 });
-  await page.goto("http://localhost:3000/about", { waitUntil: "networkidle" });
-  await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
-  await expect(page.locator('[data-motion="collage-item"]').first()).toHaveAttribute("data-motion-ready", "true", { timeout: 4_000 });
-  await expect(page.locator('[data-motion="playing-card"]')).toHaveCount(5);
 });

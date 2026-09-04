@@ -6,7 +6,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/src/content/site";
 import { createWiggle, hasFinePointer, MOTION_CONFIG, prefersReducedMotion } from "@/src/motion/portfolioMotion";
 import { ReferenceArtboard } from "./ReferenceArtboard";
-import { SiteNav } from "./SiteNav";
 import { DevReferenceOverlay } from "./DevReferenceOverlay";
 
 const cardPositions = [
@@ -27,8 +26,11 @@ export function CardsScene() {
     gsap.registerPlugin(ScrollTrigger);
     const cleanups: Array<() => void> = [];
     const context = gsap.context(() => {
+      const heading = stage.querySelector<HTMLElement>('[data-motion="cards-heading"]');
       const cards = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="playing-card"]'));
-      if (cards.length !== 5) return;
+      const cardContent = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="card-content"]'));
+      const tail = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="cards-tail"]'));
+      if (!heading || cards.length !== 5 || cardContent.length !== 5) return;
 
       if (prefersReducedMotion()) {
         cards.forEach((card) => { card.dataset.motionReady = "true"; });
@@ -55,31 +57,69 @@ export function CardsScene() {
       const groupCenter = centers.reduce((sum, center) => sum + center, 0) / centers.length;
       const offsets = centers.map((center) => (groupCenter - center) / artboardScale);
       const shell = stage.closest<HTMLElement>(".artboard-shell") ?? stage;
+      const contentStart = 0.15 + MOTION_CONFIG.cardSpread.duration * 0.72;
 
-      gsap.timeline({
+      const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: shell,
           start: MOTION_CONFIG.cardSpread.start,
           once: true,
         },
-      }).fromTo(cards, {
-        autoAlpha: MOTION_CONFIG.cardSpread.startOpacity,
-        x: (index) => offsets[index],
-        scale: MOTION_CONFIG.cardSpread.startScale,
-        rotation: (index) => MOTION_CONFIG.cardSpread.rotationOffsets[index],
-      }, {
-        autoAlpha: 1,
-        x: 0,
-        scale: 1,
-        rotation: 0,
-        duration: MOTION_CONFIG.cardSpread.duration,
-        stagger: MOTION_CONFIG.cardSpread.stagger,
-        ease: "power3.out",
-        clearProps: "transform,opacity,visibility",
-        onComplete: () => {
-          cards.forEach((card) => { card.dataset.motionReady = "true"; });
-        },
       });
+
+      timeline
+        .fromTo(heading, {
+          autoAlpha: 0,
+          y: MOTION_CONFIG.cardSpread.headingY,
+        }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: MOTION_CONFIG.cardSpread.headingDuration,
+          ease: "power3.out",
+          clearProps: "transform,opacity,visibility",
+        })
+        .fromTo(cards, {
+          autoAlpha: MOTION_CONFIG.cardSpread.startOpacity,
+          x: (index) => offsets[index],
+          scale: MOTION_CONFIG.cardSpread.startScale,
+          rotation: (index) => MOTION_CONFIG.cardSpread.rotationOffsets[index],
+        }, {
+          autoAlpha: 1,
+          x: 0,
+          scale: 1,
+          rotation: 0,
+          duration: MOTION_CONFIG.cardSpread.duration,
+          stagger: MOTION_CONFIG.cardSpread.stagger,
+          ease: "power3.out",
+          clearProps: "transform,opacity,visibility",
+        }, 0.15)
+        .fromTo(cardContent, {
+          autoAlpha: 0.55,
+          y: MOTION_CONFIG.cardSpread.contentY,
+          clipPath: "inset(0 0 6% 0)",
+        }, {
+          autoAlpha: 1,
+          y: 0,
+          clipPath: "inset(0 0 0% 0)",
+          duration: MOTION_CONFIG.cardSpread.contentDuration,
+          stagger: MOTION_CONFIG.cardSpread.stagger,
+          ease: "power2.out",
+          clearProps: "transform,opacity,visibility,clip-path",
+        }, contentStart)
+        .fromTo(tail, {
+          autoAlpha: 0,
+          y: MOTION_CONFIG.cardSpread.finalY,
+        }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: MOTION_CONFIG.cardSpread.finalDuration,
+          stagger: 0.06,
+          ease: "power2.out",
+          clearProps: "transform,opacity,visibility",
+        }, contentStart + 0.16)
+        .call(() => {
+          cards.forEach((card) => { card.dataset.motionReady = "true"; });
+        });
     }, stage);
 
     return () => {
@@ -90,11 +130,7 @@ export function CardsScene() {
 
   return (
     <ReferenceArtboard className="paper-stage cards-stage" motion="cards-section" stageRef={stageRef}>
-      <SiteNav hideNotes />
-      <a className="email-doodle" href={site.email} aria-label="Email Wang Jinghan">
-        <img src="/assets/shared/email.webp" alt="" />
-      </a>
-      <h2 className="cards-title">What&apos;s in the cards for us?</h2>
+      <h2 className="cards-title" data-motion="cards-heading">What&apos;s in the cards for us?</h2>
       <div className="playing-cards">
         {site.cards.map((card, index) => {
           const [left, top, width, height] = cardPositions[index];
@@ -107,13 +143,13 @@ export function CardsScene() {
               aria-label={`${card.number} ${card.title}`}
               style={{ left, top, width, height }}
             >
-              <img src={`/assets/cards/${card.asset}.webp`} alt="" />
+              <img data-motion="card-content" src={`/assets/cards/${card.asset}.webp`} alt="" />
             </a>
           );
         })}
       </div>
-      <img className="pick-doodle" src="/assets/cards/pick.webp" alt="Pick a card, any card!" />
-      <img className="social-strip" src="/assets/shared/social.webp" alt="Let's connect" />
+      <img className="pick-doodle" data-motion="cards-tail" src="/assets/cards/pick.webp" alt="Pick a card, any card!" />
+      <img className="social-strip" data-motion="cards-tail" src="/assets/shared/social.webp" alt="Let's connect" />
       <DevReferenceOverlay src="/@fs/D:/桌面/erbao/how-i-see/dev-references/REF-02-CARDS.png" />
     </ReferenceArtboard>
   );

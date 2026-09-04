@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function SiteNav({ active, dark = false, hideNotes = false, labels }: Props) {
-  let items = hideNotes ? site.nav.filter((item) => item.label !== "notes") : site.nav;
+  let items: readonly (typeof site.nav)[number][] = hideNotes ? site.nav.filter((item) => item.label !== "notes") : site.nav;
   if (labels) {
     items = labels
       .map((label) => site.nav.find((item) => item.label === label))
