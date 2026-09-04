@@ -109,7 +109,7 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 .unfinished-loose { left: 850px; top: 314px; width: 758px; height: 612px; }
 .unfinished-tray img, .unfinished-loose img { width: 100%; height: 100%; }
 
-@media (hover: hover) { .playing-card:hover { transform: translateY(-2px); } .art-link:hover { filter: brightness(1.01); } }
+@media (hover: hover) { .art-link:hover { filter: brightness(1.01); } }
 @media (max-width: 720px) {
   .artboard-shell { min-height: 52svh; }
   .site-nav { font-size: 25px; }

@@ -1,3 +1,9 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { createWiggle, hasFinePointer, MOTION_CONFIG, prefersReducedMotion } from "@/src/motion/portfolioMotion";
 import { ReferenceArtboard } from "./ReferenceArtboard";
 import { SiteNav } from "./SiteNav";
 import { DevReferenceOverlay } from "./DevReferenceOverlay";
@@ -32,8 +38,108 @@ const pieces = [
 ] as const;
 
 export function HomeScene() {
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    gsap.registerPlugin(ScrollTrigger);
+    const cleanups: Array<() => void> = [];
+    const context = gsap.context(() => {
+      const anchor = stage.querySelector<HTMLElement>('[data-motion="collage-anchor"]');
+      const items = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="collage-item"]'));
+      const dog = stage.querySelector<HTMLElement>('[data-motion="scroll-dog"]');
+      if (!anchor || !dog) return;
+
+      if (prefersReducedMotion()) {
+        items.forEach((item) => { item.dataset.motionReady = "true"; });
+        return;
+      }
+
+      if (hasFinePointer()) {
+        items.forEach((item) => {
+          cleanups.push(createWiggle(item, {
+            ...MOTION_CONFIG.collageWiggle,
+            ready: () => item.dataset.motionReady === "true",
+          }));
+        });
+      }
+
+      const stageRect = stage.getBoundingClientRect();
+      const artboardScale = stageRect.width / stage.offsetWidth;
+      const anchorRect = anchor.getBoundingClientRect();
+      const anchorCenter = {
+        x: anchorRect.left + anchorRect.width / 2,
+        y: anchorRect.top + anchorRect.height / 2,
+      };
+      const offsets = items.map((item) => {
+        const rect = item.getBoundingClientRect();
+        return {
+          x: (anchorCenter.x - (rect.left + rect.width / 2)) / artboardScale,
+          y: (anchorCenter.y - (rect.top + rect.height / 2)) / artboardScale,
+        };
+      });
+
+      gsap.timeline()
+        .fromTo(anchor, {
+          autoAlpha: 0,
+          scale: MOTION_CONFIG.collageEntrance.anchorStartScale,
+        }, {
+          autoAlpha: 1,
+          scale: 1,
+          duration: MOTION_CONFIG.collageEntrance.anchorDuration,
+          ease: "power3.out",
+          clearProps: "transform,opacity,visibility",
+        })
+        .fromTo(items, {
+          autoAlpha: 0.15,
+          x: (index) => offsets[index].x,
+          y: (index) => offsets[index].y,
+          scale: MOTION_CONFIG.collageEntrance.itemStartScale,
+          rotation: (index) => ((index * 11) % 15) - MOTION_CONFIG.collageEntrance.rotationVariance,
+        }, {
+          autoAlpha: 1,
+          x: 0,
+          y: 0,
+          scale: 1,
+          rotation: 0,
+          duration: MOTION_CONFIG.collageEntrance.itemDuration,
+          stagger: MOTION_CONFIG.collageEntrance.stagger,
+          ease: "power3.out",
+          clearProps: "transform,opacity,visibility",
+          onComplete: () => {
+            items.forEach((item) => { item.dataset.motionReady = "true"; });
+          },
+        }, 0.08);
+
+      const cardsStage = stage.parentElement?.nextElementSibling?.querySelector<HTMLElement>('[data-motion="cards-section"]');
+      const cardsShell = cardsStage?.closest<HTMLElement>(".artboard-shell") ?? cardsStage;
+      if (cardsShell) {
+        gsap.to(dog, {
+          xPercent: MOTION_CONFIG.dogExit.xPercent,
+          y: MOTION_CONFIG.dogExit.y,
+          rotation: MOTION_CONFIG.dogExit.rotation,
+          scale: MOTION_CONFIG.dogExit.scale,
+          ease: "none",
+          scrollTrigger: {
+            trigger: cardsShell,
+            start: MOTION_CONFIG.dogExit.start,
+            end: MOTION_CONFIG.dogExit.end,
+            scrub: MOTION_CONFIG.dogExit.scrub,
+          },
+        });
+      }
+    }, stage);
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      context.revert();
+    };
+  }, []);
+
   return (
-    <ReferenceArtboard className="paper-stage home-stage">
+    <ReferenceArtboard className="paper-stage home-stage" motion="collage-root" stageRef={stageRef}>
       <SiteNav />
       <a className="email-doodle" href="mailto:hello@example.com" aria-label="Email Wang Jinghan">
         <img src="/assets/shared/email.webp" alt="" />
@@ -42,6 +148,7 @@ export function HomeScene() {
         <img
           key={name}
           className="collage-piece"
+          data-motion="collage-item"
           src={`/assets/home/${name}.webp`}
           alt=""
           aria-hidden="true"
@@ -50,6 +157,7 @@ export function HomeScene() {
       ))}
       <img
         className="collage-piece"
+        data-motion="collage-anchor"
         src="/assets/home/portrait-wreath.webp"
         alt="Portrait of Wang Jinghan framed with flowers"
         style={{ left: 676, top: 282, width: 326, height: 308 }}
@@ -58,7 +166,7 @@ export function HomeScene() {
         <h1>HOW I SEE</h1>
         <p>observing. feeling. remembering.</p>
       </div>
-      <img className="scroll-doodle" src="/assets/shared/scroll.webp" alt="Scroll down" />
+      <img className="scroll-doodle" data-motion="scroll-dog" src="/assets/shared/scroll.webp" alt="Scroll down" />
       <DevReferenceOverlay src="/@fs/D:/桌面/erbao/how-i-see/dev-references/REF-01-HOME.png" />
     </ReferenceArtboard>
   );

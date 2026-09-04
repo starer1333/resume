@@ -1,14 +1,16 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useRef, useState } from "react";
+import { CSSProperties, ReactNode, Ref, useEffect, useRef, useState } from "react";
 
 type Props = {
   children: ReactNode;
   className?: string;
   height?: number;
+  motion?: string;
+  stageRef?: Ref<HTMLDivElement>;
 };
 
-export function ReferenceArtboard({ children, className = "", height = 941 }: Props) {
+export function ReferenceArtboard({ children, className = "", height = 941, motion, stageRef }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -28,7 +30,7 @@ export function ReferenceArtboard({ children, className = "", height = 941 }: Pr
 
   return (
     <div ref={host} className="artboard-shell" style={hostStyle}>
-      <div className={`reference-artboard ${className}`} style={stageStyle}>
+      <div ref={stageRef} className={`reference-artboard ${className}`} style={stageStyle} data-motion={motion}>
         {children}
       </div>
     </div>

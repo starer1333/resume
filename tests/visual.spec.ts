@@ -16,9 +16,9 @@ async function capture(page: import("@playwright/test").Page, route: string, nam
 }
 
 test("reference artboards at 1672x941", async ({ page }) => {
-  await capture(page, "/", "home");
+  await capture(page, "/", "home", 2_400);
   await page.evaluate(() => window.scrollTo(0, 941));
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(1_500);
   await page.screenshot({ path: resolve(output, "cards.png"), animations: "disabled" });
   await capture(page, "/about", "about");
   await capture(page, "/question", "question");
