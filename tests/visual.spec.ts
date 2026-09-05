@@ -16,10 +16,12 @@ async function capture(page: import("@playwright/test").Page, route: string, nam
 }
 
 test("desktop visual states at 1672x941", async ({ page }) => {
-  await capture(page, "/", "home-collapsed", 450);
-  await page.evaluate(() => window.scrollTo(0, 110));
+  await capture(page, "/", "home-entry", 120);
   await expect(page.locator('[data-motion="hero"]')).toHaveAttribute("data-hero-state", "expanded", { timeout: 3_000 });
   await page.screenshot({ path: resolve(output, "home.png"), animations: "disabled" });
+  await page.evaluate(() => window.scrollTo(0, Math.round(window.innerHeight * 0.52)));
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: resolve(output, "cards-transition.png"), animations: "disabled" });
   await page.evaluate(() => window.scrollTo(0, window.innerHeight));
   await page.waitForTimeout(1_250);
   await page.screenshot({ path: resolve(output, "cards.png"), animations: "disabled" });
@@ -31,11 +33,11 @@ test("desktop visual states at 1672x941", async ({ page }) => {
   await capture(page, "/unfinished", "unfinished");
 });
 
-test("Observe opens directly in its interactive final state", async ({ page }) => {
+test("Observe completes its hidden loading gate into the interactive final state", async ({ page }) => {
   await page.goto("http://localhost:3000/observe", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".observe-carousel canvas")).toBeVisible({ timeout: 6_000 });
-  await expect(page.locator('[aria-live="polite"]')).not.toHaveText("", { timeout: 8_000 });
-  await expect(page.getByText(/^100$/)).toHaveCount(0);
+  await expect(page.locator('[data-viscose-loader]')).toBeHidden();
+  await expect(page.locator(".observe-carousel > div").first()).toHaveAttribute("data-viscose-state", "interactive", { timeout: 30_000 });
   await page.screenshot({ path: resolve(output, "observe.png"), animations: "disabled" });
   const before = await page.screenshot();
   await page.mouse.move(820, 470);
@@ -54,7 +56,6 @@ test("mobile routes fit and homepage keeps its authored composition", async ({ p
     expect(widths.content, route).toBeLessThanOrEqual(widths.viewport);
   }
   await page.goto("http://localhost:3000/", { waitUntil: "networkidle" });
-  await page.evaluate(() => window.scrollTo(0, 70));
   await expect(page.locator('[data-motion="hero"]')).toHaveAttribute("data-hero-state", "expanded", { timeout: 3_000 });
   await page.screenshot({ path: resolve(output, "mobile-home.png"), fullPage: false, animations: "disabled" });
 });

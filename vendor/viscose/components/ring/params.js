@@ -66,6 +66,13 @@ export function defaultParams() {
     blend: 14, // px over which neighbouring art crossfades in the goo
     imageOffset: 0, // rotates the whole deal; 0 lands the entry on PROJECTS[0]
 
+    // -- loading ---------------------------------------------------------
+    // Structural-only counter; reaching 100 remains the launch gate.
+    holdAfter: 0,
+    loaderChase: 0.18,
+    loaderBottom: 1,
+    loaderOut: 0.45,
+
     // -- entry timing ----------------------------------------------------
     stagger: 0.34,
     launchTime: 1.95,

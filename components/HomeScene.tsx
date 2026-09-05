@@ -81,11 +81,13 @@ export function HomeScene() {
     const cards = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="hero-fragment"]'));
     const surfaces = Array.from(stage.querySelectorAll<HTMLElement>('[data-motion="hero-fragment-surface"]'));
     const center = stage.querySelector<HTMLElement>('[data-motion="hero-center"]');
-    if (!center || cards.length !== heroFragments.length) return;
+    const slothCue = stage.querySelector<HTMLElement>('[data-motion="scroll-sloth"]');
+    if (!center || !slothCue || cards.length !== heroFragments.length) return;
 
     if (prefersReducedMotion()) {
       stage.dataset.heroState = "expanded";
       cards.forEach((card) => { card.dataset.motionReady = "true"; });
+      slothCue.dataset.motionReady = "true";
       return;
     }
 
@@ -93,13 +95,14 @@ export function HomeScene() {
     const context = gsap.context(() => {
       let unfold: gsap.core.Timeline | null = null;
       let armed = true;
+      const isMobile = window.innerWidth <= 720;
 
       const finalRotation = (card: HTMLElement) => {
         const value = getComputedStyle(card).getPropertyValue("--hero-rotate");
         return Number.parseFloat(value) || 0;
       };
 
-      const collapse = (state: "collapsed" | "rearmed") => {
+      const placeAtSeed = (state: "seed" | "rearmed") => {
         unfold?.kill();
         gsap.killTweensOf(cards);
         gsap.set(cards, { clearProps: "transform,opacity,visibility" });
@@ -116,7 +119,7 @@ export function HomeScene() {
             y: centerY - (rect.top + rect.height / 2) + offset.y,
             z: MOTION_CONFIG.heroUnfold.collapsedDepth,
             scale: MOTION_CONFIG.heroUnfold.collapsedScale,
-            rotation: (index - 2.5) * 1.6,
+            rotation: MOTION_CONFIG.heroUnfold.collapsedRotations[index],
             rotationX: index % 2 === 0 ? -8 : 7,
             rotationY: index % 2 === 0 ? 10 : -10,
             autoAlpha: MOTION_CONFIG.heroUnfold.collapsedOpacity,
@@ -127,10 +130,10 @@ export function HomeScene() {
         stage.dataset.heroState = state;
       };
 
-      const expand = () => {
+      const expand = (introduceSeed = false) => {
         if (!armed) return;
         armed = false;
-        stage.dataset.heroState = "expanding";
+        stage.dataset.heroState = "entering";
         cards.forEach((card) => { card.dataset.motionReady = "false"; });
 
         unfold = gsap.timeline({
@@ -139,14 +142,22 @@ export function HomeScene() {
             cards.forEach((card) => { card.dataset.motionReady = "true"; });
           },
         });
+        if (introduceSeed) {
+          unfold.fromTo(center, {
+            autoAlpha: 0,
+            scale: MOTION_CONFIG.heroUnfold.seedScale,
+            y: MOTION_CONFIG.heroUnfold.seedY,
+          }, {
+            autoAlpha: 1,
+            scale: 1,
+            y: 0,
+            duration: MOTION_CONFIG.heroUnfold.seedDuration,
+            ease: "power3.out",
+            clearProps: "transform,opacity,visibility",
+          }, 0);
+        }
+
         unfold
-          .to(center, {
-            scale: 1.018,
-            duration: MOTION_CONFIG.heroUnfold.centerPulse / 2,
-            repeat: 1,
-            yoyo: true,
-            ease: "sine.inOut",
-          }, 0)
           .to(cards, {
             x: 0,
             y: 0,
@@ -157,31 +168,51 @@ export function HomeScene() {
             rotationY: 0,
             autoAlpha: 1,
             duration: MOTION_CONFIG.heroUnfold.duration,
-            stagger: { each: MOTION_CONFIG.heroUnfold.stagger, from: "center" },
+            stagger: { each: MOTION_CONFIG.heroUnfold.stagger, from: "start" },
             ease: "power3.out",
             clearProps: "transform,opacity,visibility,transform-origin",
-          }, 0.04);
+          }, introduceSeed ? MOTION_CONFIG.heroUnfold.releaseAt : 0);
       };
 
-      collapse("collapsed");
+      placeAtSeed("seed");
+      expand(true);
 
       const trigger = ScrollTrigger.create({
         trigger: stage,
-        start: () => `top+=${window.innerWidth <= 720 ? MOTION_CONFIG.heroUnfold.mobileTrigger : MOTION_CONFIG.heroUnfold.trigger} top`,
+        start: () => `top+=${isMobile ? MOTION_CONFIG.heroUnfold.mobileTrigger : MOTION_CONFIG.heroUnfold.trigger} top`,
         onEnter: (self) => {
           if (self.direction > 0 && armed) expand();
         },
         onLeaveBack: (self) => {
           if (self.direction < 0) {
             armed = true;
-            collapse("rearmed");
+            placeAtSeed("rearmed");
           }
         },
         invalidateOnRefresh: true,
       });
       cleanups.push(() => trigger.kill());
 
-      if (window.scrollY > trigger.start) expand();
+      const slothTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: stage,
+          start: MOTION_CONFIG.slothExit.start,
+          end: MOTION_CONFIG.slothExit.end,
+          scrub: MOTION_CONFIG.slothExit.scrub,
+          invalidateOnRefresh: true,
+        },
+      });
+      slothTimeline
+        .to(slothCue, { duration: MOTION_CONFIG.slothExit.holdProgress })
+        .to(slothCue, {
+          xPercent: MOTION_CONFIG.slothExit.xPercent,
+          y: MOTION_CONFIG.slothExit.y,
+          rotation: MOTION_CONFIG.slothExit.rotation,
+          scale: MOTION_CONFIG.slothExit.scale,
+          ease: "power2.in",
+          duration: 1 - MOTION_CONFIG.slothExit.holdProgress,
+        });
+      slothCue.dataset.motionReady = "true";
 
       if (hasFinePointer()) {
         surfaces.forEach((surface, index) => {
@@ -244,7 +275,7 @@ export function HomeScene() {
   }, []);
 
   return (
-    <section ref={stageRef} className="home-hero paper-stage" data-motion="hero" data-hero-state="collapsed">
+    <section ref={stageRef} className="home-hero paper-stage" data-motion="hero" data-hero-state="seed">
       <SiteNav />
       <p className="hero-field-note">a personal field note<br />in sound, image &amp; memory</p>
 
@@ -263,9 +294,12 @@ export function HomeScene() {
         {heroFragments.map((fragment) => <HeroFragmentCard key={fragment.id} fragment={fragment} />)}
       </div>
 
-      <div className="hero-scroll-cue" aria-hidden="true">
-        <img src="/assets/shared/sloth.jpg" alt="" />
-        <span>scroll to unfold</span>
+      <div className="hero-scroll-cue" data-motion="scroll-sloth" aria-hidden="true">
+        <img className="hero-scroll-cue__ink hero-scroll-cue__ink--text" src="/assets/shared/scroll.webp" alt="" />
+        <span className="hero-scroll-cue__animal">
+          <img src="/assets/shared/sloth.jpg" alt="" />
+        </span>
+        <img className="hero-scroll-cue__ink hero-scroll-cue__ink--arrow" src="/assets/shared/scroll.webp" alt="" />
       </div>
     </section>
   );

@@ -5,13 +5,15 @@ import "@fontsource/caveat/400.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://how-i-see-wang-jinghan.judy40202.chatgpt.site"),
+  metadataBase: new URL("https://byjinghan.com"),
+  alternates: { canonical: "/" },
   title: {
     default: "Jinghan — Personal Archive",
     template: "%s — Jinghan",
   },
   description: "Observing, listening, and making — the personal visual archive of Wang Jinghan.",
   openGraph: {
+    url: "/",
     title: "Jinghan — Personal Archive",
     description: "Observing, listening, and making — the personal visual archive of Wang Jinghan.",
     type: "website",

@@ -33,8 +33,10 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 .dev-reference-overlay { position: absolute; z-index: 9999; inset: 0; width: 1672px; height: 941px; pointer-events: none; }
 
 /* Homepage: an original, responsive personal archive cover. */
-.home-flow, .cards-stage { background: #f9f9f9; }
-.home-hero { position: relative; width: 100%; height: 100svh; min-height: 760px; max-height: 1050px; overflow: hidden; isolation: isolate; perspective: 1400px; background-color: #f9f9f9; }
+.home-flow { --home-paper-background: #f9f9f9; background-color: var(--home-paper-background); }
+.home-hero, .cards-stage { background-color: var(--home-paper-background, #f9f9f9); }
+.cards-stage { background-image: url("/assets/shared/paper-bg.webp"); background-repeat: repeat; }
+.home-hero { position: relative; width: 100%; height: 100svh; min-height: 760px; max-height: 1050px; overflow: hidden; isolation: isolate; perspective: 1400px; }
 .home-hero::after { content: ""; position: absolute; z-index: 1; left: 6%; right: 6%; bottom: 28px; height: 1px; background: rgba(47,101,64,.18); }
 .hero-field-note { position: absolute; z-index: 4; top: 116px; left: 50%; margin: 0; transform: translateX(-50%); color: rgba(23,23,23,.64); font: 15px/1.45 "Courier New", monospace; text-align: center; letter-spacing: .02em; }
 .hero-center { position: absolute; z-index: 15; left: 50%; top: 49%; display: flex; width: min(25vw, 390px); min-width: 318px; aspect-ratio: 1.32; padding: 34px 36px 31px; transform: translate(-50%, -50%); transform-style: preserve-3d; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(47,101,64,.35); background: rgba(249,247,240,.97); box-shadow: 0 30px 70px rgba(39,44,35,.13), 0 4px 12px rgba(39,44,35,.09); text-align: center; }
@@ -73,8 +75,12 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 .hero-fragment__graphic--piano i:nth-of-type(1) { left: 18%; } .hero-fragment__graphic--piano i:nth-of-type(2) { left: 34%; } .hero-fragment__graphic--piano i:nth-of-type(3) { left: 50%; } .hero-fragment__graphic--piano i:nth-of-type(4) { left: 66%; }
 .hero-fragment__graphic--editing i { left: 17%; height: 7px; background: currentColor; }
 .hero-fragment__graphic--editing i:nth-of-type(1) { top: 25%; width: 62%; } .hero-fragment__graphic--editing i:nth-of-type(2) { top: 38%; width: 48%; } .hero-fragment__graphic--editing i:nth-of-type(3) { top: 51%; width: 70%; } .hero-fragment__graphic--editing i:nth-of-type(4) { top: 64%; width: 37%; }
-.hero-scroll-cue { position: absolute; z-index: 8; left: 27px; bottom: 34px; display: flex; align-items: flex-end; gap: 3px; color: #111; font-family: var(--script); font-size: 18px; transform: rotate(-2deg); }
-.hero-scroll-cue img { width: 92px; height: 72px; object-fit: cover; object-position: 50% 46%; mix-blend-mode: multiply; }
+.hero-scroll-cue { position: absolute; z-index: 8; left: 38px; bottom: 27px; width: 254px; height: 178px; transform-origin: 50% 70%; mix-blend-mode: darken; }
+.hero-scroll-cue__ink { position: absolute; z-index: 3; inset: 0; width: 254px; height: 178px; object-fit: cover; }
+.hero-scroll-cue__ink--text { clip-path: polygon(0 0, 78% 0, 78% 24%, 0 24%); }
+.hero-scroll-cue__ink--arrow { clip-path: polygon(72% 10%, 100% 10%, 100% 92%, 72% 92%); }
+.hero-scroll-cue__animal { position: absolute; z-index: 2; left: 26px; top: 40px; width: 170px; height: 136px; overflow: hidden; }
+.hero-scroll-cue__animal img { position: absolute; left: -53px; top: -54px; width: 267px; height: 267px; max-width: none; object-fit: contain; }
 .about-stage { background: #f7f7f7; }
 .about-stage::before { content: ""; position: absolute; z-index: 35; left: 0; right: 0; top: 0; height: 92px; background: #f9f9f9; box-shadow: 0 1px 0 rgba(47,101,64,.06); }.cards-title { position: absolute; z-index: 10; top: 145px; left: 338px; width: 1040px; margin: 0; color: var(--gold); font-family: var(--serif); font-size: 75px; font-weight: 600; line-height: 1; text-align: center; letter-spacing: -2.2px; white-space: nowrap; }
 .playing-card { position: absolute; z-index: 8; display: block; }
@@ -108,8 +114,14 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 .question-more { position: absolute; left: 1450px; top: 873px; margin: 0; font-family: var(--script); font-size: 23px; }
 
 /* Make newspaper. */
-.make-newspaper-motion { position: absolute; left: 248px; top: 107px; width: 1139px; height: 780px; }
-.make-newspaper { width: 100%; height: 100%; object-fit: cover; }
+.make-newspaper-motion { position: absolute; left: 248px; top: 107px; width: 1139px; height: 780px; perspective: 1200px; transform-style: preserve-3d; }
+.make-newspaper { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.make-newspaper-panel { position: absolute; z-index: 2; top: 0; width: 50%; height: 100%; overflow: hidden; backface-visibility: hidden; transform-style: preserve-3d; will-change: transform; }
+.make-newspaper-panel--left { left: 0; transform-origin: 100% 50%; }
+.make-newspaper-panel--right { left: 50%; transform-origin: 0 50%; }
+.make-newspaper-panel img { position: absolute; top: 0; width: 1139px; height: 780px; max-width: none; object-fit: cover; }
+.make-newspaper-panel--left img { left: 0; }
+.make-newspaper-panel--right img { right: 0; }
 .make-hotspots { position: absolute; inset: 0; z-index: 10; }
 .make-hotspots .art-link { display: block; }
 
@@ -174,8 +186,10 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
   .hero-fragment__note { left: 9px; right: 7px; bottom: 3.5%; font-size: 7px; }
   .hero-fragment__graphic { padding: 10px; }
   .hero-fragment__graphic span { left: 10px; right: 10px; bottom: 8px; font-size: 7px; }
-  .hero-scroll-cue { left: 14px; bottom: 18px; gap: 0; font-size: 14px; }
-  .hero-scroll-cue img { width: 61px; height: 47px; }
+  .hero-scroll-cue { left: 14px; bottom: 14px; width: 173px; height: 121px; }
+  .hero-scroll-cue__ink { width: 173px; height: 121px; }
+  .hero-scroll-cue__animal { left: 18px; top: 27px; width: 116px; height: 92px; }
+  .hero-scroll-cue__animal img { left: -36px; top: -37px; width: 181px; height: 181px; }
 }@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
 }

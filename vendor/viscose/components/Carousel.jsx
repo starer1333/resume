@@ -41,6 +41,7 @@ export default function Carousel() {
   const containerRef = useRef(null);
   const listRef = useRef(null);
   const itemsRef = useRef([]);
+  const loaderRef = useRef(null);
   const liveRef = useRef(null);
   const cutRef = useRef(null);
   // Per side: the box that positions the lockup, the filtered wrapper the goo
@@ -54,6 +55,11 @@ export default function Carousel() {
   useEffect(() => {
     const container = containerRef.current;
     const listEl = listRef.current;
+    const loaderEl = loaderRef.current;
+    container.dataset.viscoseState = "loading";
+    // WebGL can make a cold first frame expensive. Preserve real-time entry
+    // pacing without disabling lag protection for genuinely backgrounded tabs.
+    gsap.ticker.lagSmoothing(2000, 33);
     // Async work (atlas decode, the lil-gui import) can land after cleanup
     // under StrictMode's double mount. Everything deferred checks this.
     let disposed = false;
@@ -64,7 +70,7 @@ export default function Carousel() {
     // spread:   the rest peel off it and the ring draws
     // spin:     whole-ring rotation, radians
     // shift:    the ring moves off centre and resizes
-    const state = { progress: 1, launch: 1, spread: 1, spin: params.spinTurns * TAU, shift: 1 };
+    const state = { progress: 0, launch: 0, spread: 0, spin: 0, shift: 0 };
     // Read-only panel readouts, so an invalid ring is visible rather than
     // silent and the reference window can be matched to the live one.
     const info = { restingGap: 0, window: "", scale: 1, band: "wide" };
@@ -162,6 +168,7 @@ export default function Carousel() {
       {
         groups: metaRef.current,
         list: listEl,
+        loader: loaderEl,
         cut: cutRef.current,
         live: liveRef.current,
       },
@@ -169,10 +176,17 @@ export default function Carousel() {
     );
 
     /* ---------------------------------------------------------------- art */
-    // The atlas is attached immediately. Cells fill as local images decode;
-    // there is deliberately no visible progress UI and no gate before input.
+    // The atlas is bound on frame one and fills in as images arrive. The
+    // counter is structural-only here, but its progress still gates launch.
     let firstIn = false;
-    const atlas = buildAtlas(IMAGE_FILES);
+    let loadProg = 0;
+    let launchReady = false;
+    const readyWaiters = [];
+    const whenReady = (fn) => (launchReady ? fn() : readyWaiters.push(fn));
+
+    const atlas = buildAtlas(IMAGE_FILES, (progress) => {
+      if (!disposed) loadProg = progress;
+    });
 
     uniforms.uAtlas.value.dispose();
     atlas.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -184,6 +198,9 @@ export default function Carousel() {
 
     atlas.first.then(() => {
       if (!disposed) firstIn = true;
+    });
+    atlas.ready.then(() => {
+      if (!disposed) loadProg = 1;
     });
 
     /* --------------------------------------------------------------- size */
@@ -270,7 +287,7 @@ export default function Carousel() {
     // Which way "front" is: from the ring's centre toward the middle of the
     // screen. Once the ring is off centre that is no longer 3 o'clock.
     let frontAngle = 0;
-    let interactive = true;
+    let interactive = false;
     let spinVel = 0; // rad/s
     let dragging = false;
     let dragPrevAngle = 0;
@@ -505,6 +522,23 @@ export default function Carousel() {
         params.waveFreq,
         params.waveSpeed,
       );
+    };
+
+    /* ------------------------------------------------------- load counter */
+    const loading = { shown: 0 };
+
+    const tickLoader = (dt) => {
+      const target = Math.min(loadProg, clamp01(state.progress));
+      loading.shown += (target - loading.shown) * chase(dt, params.loaderChase);
+
+      const n = Math.min(100, Math.max(1, Math.round(loading.shown * 100)));
+      if (loaderEl) loaderEl.textContent = String(n).padStart(3, "0");
+
+      if (!launchReady && n >= 100) {
+        launchReady = true;
+        for (const fn of readyWaiters) fn();
+        readyWaiters.length = 0;
+      }
     };
 
     /* ------------------------------------------------------- the carousel */
@@ -928,38 +962,151 @@ export default function Carousel() {
       uniforms.uSheen.value = on ? params.sheen : 0;
     };
 
-    /* ----------------------------------------------- immediate final state */
-    const applyFinalState = () => {
-      gsap.killTweensOf(state);
-      state.progress = 1;
-      state.launch = 1;
-      state.spread = 1;
-      state.spin = params.spinTurns * TAU;
-      state.shift = 1;
+    /* ------------------------------------------------------- entry timeline */
+    let entryGen = 0;
+
+    const build = () => {
+      interactive = false;
+      announced = -1;
       spinVel = 0;
       dragging = false;
       settling = false;
-      interactive = true;
-      if (listEl) gsap.set(listEl, { opacity: 1 });
+      stopPick();
+
+      const gen = ++entryGen;
+      if (loaderEl) gsap.set(loaderEl, { opacity: launchReady ? 0 : 1 });
+
+      const timeline = gsap.timeline({
+        delay: 0.25,
+        onComplete: () => {
+          interactive = true;
+          container.dataset.viscoseState = "interactive";
+        },
+      });
+
+      timeline.fromTo(
+        state,
+        { progress: 0, launch: 0, spread: 0, spin: 0, shift: 0 },
+        { progress: 1, duration: 1.2, ease: "power2.out" },
+      );
+
+      timeline.addPause(">", () => {
+        whenReady(() => {
+          const release = () => {
+            if (disposed || gen !== entryGen) return;
+            timeline.resume();
+            if (loaderEl) {
+              gsap.to(loaderEl, {
+                opacity: 0,
+                duration: params.loaderOut,
+                ease: "power2.in",
+              });
+            }
+          };
+          if (params.holdAfter > 0) gsap.delayedCall(params.holdAfter, release);
+          else release();
+        });
+      });
+
+      timeline.to(state, {
+        launch: 1,
+        duration: params.launchTime,
+        ease: "power2.inOut",
+      });
+
+      const spreadStart = timeline.duration() - 0.15;
+      timeline.to(
+        state,
+        { spread: 1, duration: params.spreadTime, ease: params.spreadEase },
+        spreadStart,
+      );
+
+      const stageStart = spreadStart + params.stageAt * params.spreadTime;
+      timeline.to(
+        state,
+        {
+          spin: params.spinTurns * TAU,
+          duration: params.spinTime,
+          ease: params.spinEase,
+        },
+        stageStart + params.spinDelay,
+      );
+      timeline.to(
+        state,
+        { shift: 1, duration: params.moveTime, ease: params.moveEase },
+        stageStart + params.moveDelay,
+      );
+
+      const textStart = spreadStart + params.textAt * params.spreadTime;
+
+      if (splitText.chars.length) {
+        timeline.fromTo(
+          splitText.chars,
+          { value: 0 },
+          {
+            value: 1,
+            duration: params.textTime,
+            ease: params.textEase,
+            stagger: params.textStagger,
+          },
+          textStart,
+        );
+      }
+
+      if (params.textOut && splitText.fades.length) {
+        const landed = Math.max(
+          stageStart + params.spinDelay + params.spinTime,
+          stageStart + params.moveDelay + params.moveTime,
+        );
+        timeline.fromTo(
+          splitText.fades,
+          { value: 1 },
+          {
+            value: 0,
+            duration: params.textOutTime,
+            ease: params.textOutEase,
+            stagger: params.textStagger,
+          },
+          Math.max(0, landed + params.textOutAt),
+        );
+      }
+
+      if (listEl) {
+        timeline.fromTo(
+          listEl,
+          { opacity: 0 },
+          { opacity: 1, duration: params.textTime, ease: params.textEase },
+          textStart,
+        );
+      }
+
+      return timeline;
     };
 
-    const replay = applyFinalState;
+    let timeline = null;
+    const replay = () => {
+      timeline?.kill();
+      timeline = build();
+    };
 
     tag.build();
     tag.load(() => {
       if (!disposed) tag.build();
     });
     styleMeta();
-    applyFinalState();
 
-    // Refresh typography when web fonts settle without resetting the ring or
-    // delaying the first usable frame.
-    (document.fonts?.ready ?? Promise.resolve()).then(() => {
-      if (disposed) return;
+    const startEntry = () => {
+      if (disposed || timeline) return;
       splitText.build();
       tag.build();
       styleMeta();
-    });
+      replay();
+    };
+
+    const fontFallback = setTimeout(startEntry, 3000);
+    (document.fonts?.ready ?? Promise.resolve())
+      .then(startEntry)
+      .catch(startEntry);
 
     /* ------------------------------------------------------- dev controls */
     let gui;
@@ -1072,6 +1219,7 @@ export default function Carousel() {
         }
       }
 
+      tickLoader(dt);
       updatePointer(dt);
       layout(dt);
 
@@ -1095,7 +1243,10 @@ export default function Carousel() {
 
     return () => {
       disposed = true;
+      delete container.dataset.viscoseState;
+      gsap.ticker.lagSmoothing(500, 33);
       clearTimeout(holdTimer);
+      clearTimeout(fontFallback);
       renderer.setAnimationLoop(null);
 
       window.removeEventListener("resize", onResize);
@@ -1107,6 +1258,7 @@ export default function Carousel() {
       container.removeEventListener("pointerleave", onPointerLeave);
       container.removeEventListener("click", onClick);
 
+      timeline?.kill();
       gsap.killTweensOf(splitText.chars);
       gsap.killTweensOf(splitText.fades);
       gsap.killTweensOf(listEl);
@@ -1227,6 +1379,8 @@ export default function Carousel() {
           </div>
         );
       })}
+
+      <div ref={loaderRef} hidden aria-hidden="true" data-viscose-loader />
 
       <div ref={liveRef} aria-live="polite" className="sr-only" />
 

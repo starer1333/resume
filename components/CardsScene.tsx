@@ -57,26 +57,30 @@ export function CardsScene() {
       const groupCenter = centers.reduce((sum, center) => sum + center, 0) / centers.length;
       const offsets = centers.map((center) => (groupCenter - center) / artboardScale);
       const shell = stage.closest<HTMLElement>(".artboard-shell") ?? stage;
-      const contentStart = 0.15 + MOTION_CONFIG.cardSpread.duration * 0.72;
-
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: shell,
           start: MOTION_CONFIG.cardSpread.start,
-          once: true,
+          end: MOTION_CONFIG.cardSpread.end,
+          scrub: MOTION_CONFIG.cardSpread.scrub,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            cards.forEach((card) => { card.dataset.motionReady = self.progress > 0.98 ? "true" : "false"; });
+          },
         },
       });
 
       timeline
         .fromTo(heading, {
-          autoAlpha: 0,
+          autoAlpha: 1,
+          scale: MOTION_CONFIG.cardSpread.headingScale,
           y: MOTION_CONFIG.cardSpread.headingY,
         }, {
           autoAlpha: 1,
+          scale: 1,
           y: 0,
           duration: MOTION_CONFIG.cardSpread.headingDuration,
-          ease: "power3.out",
-          clearProps: "transform,opacity,visibility",
+          ease: "none",
         })
         .fromTo(cards, {
           autoAlpha: MOTION_CONFIG.cardSpread.startOpacity,
@@ -91,8 +95,7 @@ export function CardsScene() {
           duration: MOTION_CONFIG.cardSpread.duration,
           stagger: MOTION_CONFIG.cardSpread.stagger,
           ease: "power3.out",
-          clearProps: "transform,opacity,visibility",
-        }, 0.15)
+        }, MOTION_CONFIG.cardSpread.cardsAt)
         .fromTo(cardContent, {
           autoAlpha: 0.55,
           y: MOTION_CONFIG.cardSpread.contentY,
@@ -104,8 +107,7 @@ export function CardsScene() {
           duration: MOTION_CONFIG.cardSpread.contentDuration,
           stagger: MOTION_CONFIG.cardSpread.stagger,
           ease: "power2.out",
-          clearProps: "transform,opacity,visibility,clip-path",
-        }, contentStart)
+        }, MOTION_CONFIG.cardSpread.contentAt)
         .fromTo(tail, {
           autoAlpha: 0,
           y: MOTION_CONFIG.cardSpread.finalY,
@@ -115,11 +117,7 @@ export function CardsScene() {
           duration: MOTION_CONFIG.cardSpread.finalDuration,
           stagger: 0.06,
           ease: "power2.out",
-          clearProps: "transform,opacity,visibility",
-        }, contentStart + 0.16)
-        .call(() => {
-          cards.forEach((card) => { card.dataset.motionReady = "true"; });
-        });
+        }, MOTION_CONFIG.cardSpread.tailAt);
     }, stage);
 
     return () => {
@@ -130,7 +128,7 @@ export function CardsScene() {
 
   return (
     <ReferenceArtboard className="paper-stage cards-stage" motion="cards-section" stageRef={stageRef}>
-      <h2 className="cards-title" data-motion="cards-heading">What&apos;s in the cards for us?</h2>
+      <h2 className="cards-title" data-motion="cards-heading">What do I make of things?</h2>
       <div className="playing-cards">
         {site.cards.map((card, index) => {
           const [left, top, width, height] = cardPositions[index];
